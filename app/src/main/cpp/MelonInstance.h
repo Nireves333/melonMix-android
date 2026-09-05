@@ -14,6 +14,7 @@
 #include "renderer/ScreenshotRenderer.h"
 #include "retroachievements/RetroAchievementsManager.h"
 #include "net/Net.h"
+#include "plugins/PluginManager.h" // [KHMM] KH Melon Mix plugin system
 
 using namespace melonDS;
 
@@ -78,12 +79,19 @@ private:
     void setBatteryLevels();
     void setDateTime();
     void saveRewindState(RewindSaveState* rewindSaveState);
+    void loadPlugin(u32 gameCode); // [KHMM] (re)create the KH plugin for the loaded game
 
 private:
     int instanceId;
     int consoleType;
     NDS* nds;
     std::shared_ptr<Net> net;
+
+    // [KHMM] active game plugin. Never null after construction (PluginDefault fallback).
+    // Step A of the port keeps the custom composite shader OFF (khEnhancedGraphics=false)
+    // until the shader is ported to GLES 320es; Step B flips this on with a real toggle.
+    Plugins::Plugin* plugin = nullptr;
+    bool khEnhancedGraphics = false;
 
     std::atomic<float> motionData[6] = { 0.0f, 0.0f, 9.80665f, 0.0f, 0.0f, 0.0f };
 

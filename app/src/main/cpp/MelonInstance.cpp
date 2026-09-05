@@ -6,6 +6,7 @@
 #include <GLES3/gl3.h>
 #include "Args.h"
 #include "GPU3D_Compute.h"
+#include "GPU2D_Soft.h" // [KHMM] for GPU2D::SoftRenderer::setPlugin
 #include "Configuration.h"
 #include "DSi.h"
 #include "DSiSupport.h"
@@ -78,6 +79,10 @@ MelonInstance::MelonInstance(int instanceId, std::shared_ptr<EmulatorConfigurati
     nds->Reset();
     setBatteryLevels();
     setDateTime();
+
+    // [KHMM] Ensure a plugin exists before the first frame/renderer creation, even
+    // when booting firmware with no ROM. loadRom() replaces it with the game plugin.
+    loadPlugin(0);
 }
 
 MelonInstance::~MelonInstance()
@@ -85,6 +90,7 @@ MelonInstance::~MelonInstance()
     frameQueue.clear();
     net->UnregisterInstance(instanceId);
     delete nds;
+    delete plugin; // [KHMM]
 }
 
 bool MelonInstance::loadRom(std::string romPath, std::string sramPath)
@@ -114,6 +120,15 @@ bool MelonInstance::loadRom(std::string romPath, std::string sramPath)
     if (nread != 1)
     {
         return false;
+    }
+
+    // [KHMM] Read the NDS game code (4 bytes at header offset 0x0C) before romData is
+    // moved into ParseROM; used to pick the matching game plugin.
+    u32 gameCode = 0;
+    if (romFileLength >= 0x10)
+    {
+        gameCode = (u32) romData[0x0C] | ((u32) romData[0x0D] << 8)
+                 | ((u32) romData[0x0E] << 16) | ((u32) romData[0x0F] << 24);
     }
 
     // SRAM file loading
@@ -151,6 +166,10 @@ bool MelonInstance::loadRom(std::string romPath, std::string sramPath)
 
     nds->SetNDSCart(std::move(cart));
     ndsSave = std::make_unique<SaveManager>(sramPath);
+
+    // [KHMM] Select and initialise the game plugin now that the cart is loaded.
+    loadPlugin(gameCode);
+    plugin->onLoadROM();
 
     return true;
 }
@@ -642,6 +661,47 @@ std::vector<RetroAchievements::RARuntimeAchievement> MelonInstance::getRuntimeAc
         return { };
 }
 
+// [KHMM] (Re)create the KH Melon Mix plugin for the given game code and wire it to
+// the console. PluginManager::load never returns null (PluginDefault fallback), so
+// `plugin` is non-null for the life of the instance once this has run.
+void MelonInstance::loadPlugin(u32 gameCode)
+{
+    if (plugin != nullptr && plugin->getGameCode() == gameCode)
+        return;
+
+    Plugins::Plugin* oldPlugin = plugin;
+    plugin = Plugins::PluginManager::load(gameCode);
+
+    // Step A of the port: force the enhanced-graphics / single-screen composite path
+    // OFF until the composite shader is ported to GLES 320es (Step B). All other
+    // config keys resolve to safe defaults.
+    bool enhanced = khEnhancedGraphics;
+    plugin->loadConfigs(
+        [enhanced](std::string path) -> bool {
+            if (!enhanced &&
+                (path.find(".DisableEnhancedGraphics") != std::string::npos ||
+                 path.find(".DisableSingleScreenMode") != std::string::npos))
+                return true;
+            return false;
+        },
+        [](std::string) -> int { return 0; },
+        [](std::string) -> std::string { return std::string(); }
+    );
+
+    // Step A: also keep the replacement-texture (HD) path off. loadConfigs always
+    // resets DisableReplacementTextures to false, so toggle it to true here. Texture
+    // replacement is a separate feature chunk with its own toggle later.
+    if (!khEnhancedGraphics && !plugin->areReplacementTexturesDisabled())
+        plugin->replacementTexturesToggle();
+
+    plugin->setNds(nds);
+
+    // The software 2D renderer keeps its own plugin pointer.
+    static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D()).setPlugin(plugin);
+
+    delete oldPlugin;
+}
+
 void MelonInstance::updateRenderer()
 {
     Renderer newRenderer = currentConfiguration->renderer;
@@ -654,10 +714,10 @@ void MelonInstance::updateRenderer()
                 nds->GPU.SetRenderer3D(std::make_unique<SoftRenderer>());
                 break;
             case Renderer::OpenGl:
-                nds->GPU.SetRenderer3D(GLRenderer::New());
+                nds->GPU.SetRenderer3D(GLRenderer::New(plugin)); // [KHMM] pass active plugin
                 break;
             case Renderer::Compute:
-                nds->GPU.SetRenderer3D(ComputeRenderer::New());
+                nds->GPU.SetRenderer3D(ComputeRenderer::New(plugin)); // [KHMM] pass active plugin
                 break;
             default: __builtin_unreachable();
         }

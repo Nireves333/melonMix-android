@@ -193,6 +193,26 @@ namespace Platform
         return true;
     }
 
+    // [KHMM] plugin asset/save discovery — ported from KHMelonMix src/frontend/qt_sdl/Platform.cpp
+    std::vector<std::string> ContentsOfFolder(const std::string& path, bool includeFolders, bool includeFiles)
+    {
+        std::vector<std::string> contents;
+
+        try {
+            for (const auto& entry : std::filesystem::directory_iterator(path)) {
+                const auto& p = entry.path();
+                if ((includeFiles && std::filesystem::is_regular_file(entry)) ||
+                    (includeFolders && std::filesystem::is_directory(entry))) {
+                    contents.push_back(p.filename().string());
+                }
+            }
+        } catch (const std::exception& e) {
+            Log(LogLevel::Warn, "Failed to list contents of folder \"%s\"\n", path.c_str());
+        }
+
+        return contents;
+    }
+
     bool CheckFileWritable(const std::string& filepath)
     {
         FileHandle* file = Platform::OpenFile(filepath.c_str(), FileMode::Read);
