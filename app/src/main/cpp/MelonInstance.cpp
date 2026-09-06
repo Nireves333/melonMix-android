@@ -1,5 +1,8 @@
 #include <ctime>
 #include <chrono>
+#include <cstdint>
+#include <fstream>
+#include <string>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <filesystem>
@@ -19,6 +22,7 @@
 #include "net/Net_Slirp.h"
 #include "Platform.h"
 #include "SDCardArgsBuilder.h"
+#include "MelonLog.h" // [KHMM-DBG] perf instrumentation logging
 
 using namespace std;
 using namespace melonDS;
@@ -28,6 +32,11 @@ namespace MelonDSAndroid
 {
 
 const int kRewindBufferSize = 1024 * 1024 * 20; // Use 20MB per savestate
+
+// [KHMM-DBG] perf instrumentation constants (temporary).
+static const char* kDbgTag = "MelonMixPerf";
+static const int kDbgReportFrames = 120; // log a timing window roughly every ~2s @60fps
+static const int kDbgPollFrames = 60;    // re-read the debug control file ~once/second
 const int kRewindScreenshotSize = 256 * 384 * 4;
 
 MelonInstance::MelonInstance(int instanceId, std::shared_ptr<EmulatorConfiguration> configuration, std::unique_ptr<melonDS::NDSArgs> args, std::shared_ptr<Net> net, std::unique_ptr<ScreenshotRenderer> screenshotRenderer, int consoleType) :
@@ -316,6 +325,31 @@ u32 MelonInstance::runFrame()
         isRenderConfigurationDirty = false;
     }
 
+    // [KHMM-DBG] Re-read runtime perf toggles (~once/second) and start the timing window.
+    if (frame - khDbgLastPollFrame >= kDbgPollFrames)
+    {
+        khPollDebugControls();
+        khDbgLastPollFrame = frame;
+    }
+    if (khStatFrames == 0)
+    {
+        khStatWallStart = std::chrono::steady_clock::now();
+    }
+
+    // [KHMM] Single-screen presentation keystone. The KH plugin composites the whole
+    // enhanced image into the DS *top-screen* region and expects the frontend to supply
+    // the target display aspect ratio (the desktop calls Plugin::setAspectRatio from its
+    // screen panel). Without it the plugin's AspectRatio stays 0, so the composite shader
+    // computes 1.0/currentAspectRatio = inf and the output is corrupt. Push a widescreen
+    // aspect each frame (also writes the game's internal widescreen RAM value). The
+    // frontend must then present top-screen-only at this same aspect for the single-screen
+    // look. TODO(Step C inc.2): source khAspectRatio from the real on-screen top-screen
+    // viewport over JNI instead of hardcoding 16:9.
+    if (khEnhancedGraphics && khDbgFovWiden && plugin != nullptr && plugin->isReady())
+    {
+        plugin->setAspectRatio(khAspectRatio); // [KHMM-DBG] gated by khDbgFovWiden
+    }
+
     int screenWidth;
     int screenHeight;
     if (currentRenderer == Renderer::OpenGl)
@@ -375,7 +409,45 @@ u32 MelonInstance::runFrame()
         nds->GPU.GetRenderer3D().SetOutputTexture(backBuffer, renderFrame->frameTexture);
     }
 
+    // [KHMM] Per-frame plugin update. The desktop frontend does two things each frame that
+    // our port was missing: refreshGameScene() (detect the current KH game scene by reading
+    // DS RAM; EmuThread.cpp:466, before RunFrame) and buildShapes() (rebuild the 2D/3D
+    // composite shape lists for that scene; EmuThread.cpp:534, after RunFrame). Both feed
+    // the GL compositor (gpuOpenGL_FS_updateVariables) and the 3D polygon-rewrite hook.
+    // Without them the scene stays undetected and the shape lists stay empty, so the
+    // composite renders nothing useful (blank/garbled). The compositor runs *inside*
+    // RunFrame here (GPU::Blit), so both must run just before it. Both are CPU-only.
+    if (khEnhancedGraphics && plugin != nullptr && plugin->isReady())
+    {
+        // [KHMM-DBG] time the two CPU-side plugin stages separately
+        auto t0 = std::chrono::steady_clock::now();
+        plugin->refreshGameScene();
+        auto t1 = std::chrono::steady_clock::now();
+        plugin->buildShapes();
+        auto t2 = std::chrono::steady_clock::now();
+        khStatRefreshNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
+        khStatBuildNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+    }
+
+    // [KHMM-DBG] apply the runtime hook gate so the per-polygon rewrite can be A/B'd live
+    if (plugin != nullptr)
+    {
+        plugin->debugSetApplyPolygonChanges(khDbgPolyHook);
+    }
+
+    // [KHMM-DBG] apply the runtime composite-FS gate (GL renderer only) so the plugin's
+    // full-screen composite shader can be swapped for the stock nearest FS live.
+    if (currentRenderer == Renderer::OpenGl)
+    {
+        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khDbgCompositeFS);
+    }
+
+    // [KHMM-DBG] RunFrame carries the emulation + 3D render (incl. the polygon hook) + the
+    // in-RunFrame GL composite, so this is the GPU-side cost we compare against the CPU stages.
+    auto tRun0 = std::chrono::steady_clock::now();
     u32 nLines = nds->RunFrame();
+    auto tRun1 = std::chrono::steady_clock::now();
+    khStatRunFrameNs += std::chrono::duration_cast<std::chrono::nanoseconds>(tRun1 - tRun0).count();
     retroAchievementsManager->FrameUpdate();
 
     if (!isRendererAccelerated)
@@ -428,7 +500,113 @@ u32 MelonInstance::runFrame()
         saveRewindState(nextRewindState);
     }
 
+    // [KHMM-DBG] close out the timing window
+    khStatFrames++;
+    if (khStatFrames >= kDbgReportFrames)
+    {
+        khReportPerf();
+    }
+
     return nLines;
+}
+
+// [KHMM-DBG] Read runtime perf toggles from <internalFilesDir>/melonmix_debug.txt so each A/B
+// is a one-line echo on the (rooted) device instead of a rebuild. Format: one "key=value" per
+// line; keys enhanced/fov/hook, values 1/0 (true/false/on/off/yes also accepted). Missing file
+// or missing keys leave the current state untouched. Called ~once/second from runFrame.
+void MelonInstance::khPollDebugControls()
+{
+    if (currentConfiguration == nullptr || currentConfiguration->internalFilesDir == nullptr)
+        return;
+
+    std::string path = std::string(currentConfiguration->internalFilesDir) + "/melonmix_debug.txt";
+    std::ifstream file(path);
+    if (!file.is_open())
+        return;
+
+    auto trim = [](std::string s) -> std::string {
+        size_t a = s.find_first_not_of(" \t\r\n");
+        size_t b = s.find_last_not_of(" \t\r\n");
+        if (a == std::string::npos) return "";
+        return s.substr(a, b - a + 1);
+    };
+
+    bool newEnhanced = khEnhancedGraphics;
+    bool newFov = khDbgFovWiden;
+    bool newHook = khDbgPolyHook;
+    bool newFs = khDbgCompositeFS;
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        // tolerate a leading UTF-8 BOM (editors/echo often prepend EF BB BF)
+        if (line.size() >= 3 && (unsigned char) line[0] == 0xEF &&
+            (unsigned char) line[1] == 0xBB && (unsigned char) line[2] == 0xBF)
+            line.erase(0, 3);
+        size_t eq = line.find('=');
+        if (eq == std::string::npos)
+            continue;
+        std::string key = trim(line.substr(0, eq));
+        std::string val = trim(line.substr(eq + 1));
+        bool on = (val == "1" || val == "true" || val == "on" || val == "yes");
+        if (key == "enhanced") newEnhanced = on;
+        else if (key == "fov") newFov = on;
+        else if (key == "hook") newHook = on;
+        else if (key == "fs") newFs = on;
+    }
+
+    if (newEnhanced != khEnhancedGraphics || newFov != khDbgFovWiden ||
+        newHook != khDbgPolyHook || newFs != khDbgCompositeFS)
+    {
+        khEnhancedGraphics = newEnhanced;
+        khDbgFovWiden = newFov;
+        khDbgPolyHook = newHook;
+        khDbgCompositeFS = newFs;
+        LOG_INFO(kDbgTag, "controls updated: enhanced=%d fov=%d hook=%d fs=%d",
+                 khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0,
+                 khDbgPolyHook ? 1 : 0, khDbgCompositeFS ? 1 : 0);
+    }
+}
+
+// [KHMM-DBG] Log one per-stage timing window and reset the accumulators. fps/frame are measured
+// wall-clock over the window; refresh/build are the CPU-side plugin stages; runframe carries the
+// emulation + 3D render (incl. the polygon hook) + the in-RunFrame GL composite; polys/f is the
+// number of polygons pushed through the rewrite hook per frame (geometry inflation probe).
+void MelonInstance::khReportPerf()
+{
+    auto now = std::chrono::steady_clock::now();
+    double wallMs = std::chrono::duration_cast<std::chrono::microseconds>(now - khStatWallStart).count() / 1000.0;
+    int frames = khStatFrames > 0 ? khStatFrames : 1;
+    double fps = wallMs > 0.0 ? (frames * 1000.0 / wallMs) : 0.0;
+    double frameMs = wallMs / frames;
+    double refreshMs = (khStatRefreshNs / 1.0e6) / frames;
+    double buildMs = (khStatBuildNs / 1.0e6) / frames;
+    double runMs = (khStatRunFrameNs / 1.0e6) / frames;
+
+    uint32_t polyCalls = 0;
+    if (plugin != nullptr)
+        polyCalls = plugin->debugTakePolyHookCalls();
+    double polysPerFrame = (double) polyCalls / frames;
+
+    // [KHMM-DBG] GL render+composite time (runs inside RunFrame); the remainder of runframe is
+    // ~emulation. Splits the mystery cost into CPU-emulation vs GL-render.
+    uint64_t glNanos = g_khGlRenderNanos.exchange(0, std::memory_order_relaxed);
+    double glRenderMs = (glNanos / 1.0e6) / frames;
+    double emuMs = runMs - glRenderMs;
+
+    const char* rend = currentRenderer == Renderer::OpenGl ? "GL"
+                     : currentRenderer == Renderer::Compute ? "CS" : "SW";
+
+    LOG_INFO(kDbgTag,
+             "fps=%.1f frame=%.1fms | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | polys/f=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             fps, frameMs, runMs, emuMs, glRenderMs, refreshMs, buildMs, polysPerFrame,
+             khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0, khDbgPolyHook ? 1 : 0,
+             khDbgCompositeFS ? 1 : 0, rend);
+
+    khStatRefreshNs = 0;
+    khStatBuildNs = 0;
+    khStatRunFrameNs = 0;
+    khStatFrames = 0;
 }
 
 void MelonInstance::stop()
@@ -672,9 +850,11 @@ void MelonInstance::loadPlugin(u32 gameCode)
     Plugins::Plugin* oldPlugin = plugin;
     plugin = Plugins::PluginManager::load(gameCode);
 
-    // Step A of the port: force the enhanced-graphics / single-screen composite path
-    // OFF until the composite shader is ported to GLES 320es (Step B). All other
-    // config keys resolve to safe defaults.
+    // Step B: the composite shader is ported to GLES 320es, so the enhanced-graphics /
+    // single-screen composite path is enabled (khEnhancedGraphics defaults true). When
+    // enabled, DisableEnhancedGraphics / DisableSingleScreenMode resolve to "not
+    // disabled" so the plugin runs its single-screen compositor. All other config keys
+    // resolve to safe defaults.
     bool enhanced = khEnhancedGraphics;
     plugin->loadConfigs(
         [enhanced](std::string path) -> bool {
@@ -688,10 +868,11 @@ void MelonInstance::loadPlugin(u32 gameCode)
         [](std::string) -> std::string { return std::string(); }
     );
 
-    // Step A: also keep the replacement-texture (HD) path off. loadConfigs always
-    // resets DisableReplacementTextures to false, so toggle it to true here. Texture
-    // replacement is a separate feature chunk with its own toggle later.
-    if (!khEnhancedGraphics && !plugin->areReplacementTexturesDisabled())
+    // Keep the replacement-texture (HD cutscene / texture) path OFF regardless of the
+    // enhanced-graphics toggle. loadConfigs always resets DisableReplacementTextures to
+    // false, so force it back to true here. Texture replacement is a separate feature
+    // chunk (its own memory/asset budget and toggle) and is not part of Step B.
+    if (!plugin->areReplacementTexturesDisabled())
         plugin->replacementTexturesToggle();
 
     plugin->setNds(nds);

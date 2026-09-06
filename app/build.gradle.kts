@@ -57,6 +57,19 @@ android {
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
+            // [KHMM] PERF (keeper): AGP's debug variant maps to CMAKE_BUILD_TYPE=Debug and the melonDS
+            // core sets no optimization level, so the emulation core was building at clang's -O0 default
+            // => ~3.5x slower emulation than stock's Release build (measured on RG505: emu 38ms->10ms,
+            // uniform across interpreter AND JIT). NOTE: AGP STRIPS -O flags from cppFlags on debug
+            // variants, so the core -O3 is forced at the CMake target level in
+            // melonDS-android-lib/src/CMakeLists.txt (target_compile_options(core PRIVATE -O3)). Here we
+            // pass -DNDEBUG (matches Release; not stripped) and -O3 (survives for the app/frontend code).
+            externalNativeBuild {
+                cmake {
+                    cppFlags("-O3", "-DNDEBUG")
+                    cFlags("-O3", "-DNDEBUG")
+                }
+            }
         }
     }
 

@@ -80,6 +80,8 @@ private:
     void setDateTime();
     void saveRewindState(RewindSaveState* rewindSaveState);
     void loadPlugin(u32 gameCode); // [KHMM] (re)create the KH plugin for the loaded game
+    void khPollDebugControls(); // [KHMM-DBG] read runtime perf toggles from the debug control file
+    void khReportPerf();        // [KHMM-DBG] log the per-stage timing window and reset accumulators
 
 private:
     int instanceId;
@@ -88,10 +90,31 @@ private:
     std::shared_ptr<Net> net;
 
     // [KHMM] active game plugin. Never null after construction (PluginDefault fallback).
-    // Step A of the port keeps the custom composite shader OFF (khEnhancedGraphics=false)
-    // until the shader is ported to GLES 320es; Step B flips this on with a real toggle.
+    // Step B: the composite shader is now ported to GLES 320es, so enhanced graphics
+    // (single-screen compositing) is enabled by default. A user-facing toggle
+    // (config -> JNI -> Kotlin) is a follow-up; the HD texture-replacement path stays
+    // forced off in loadPlugin as its own separate feature chunk.
     Plugins::Plugin* plugin = nullptr;
-    bool khEnhancedGraphics = false;
+    bool khEnhancedGraphics = true;
+    // [KHMM] target display aspect ratio pushed into the plugin each frame (single-screen
+    // presentation). 16:9 for now; Step C inc.2 sources this from the on-screen viewport.
+    float khAspectRatio = 16.0f / 9.0f;
+
+    // [KHMM-DBG] runtime perf instrumentation (temporary; grep [KHMM-DBG] to remove).
+    // Isolates the single-screen composite's cost so we can decide if the feature set is
+    // realistic on the RG505. Live toggles are read from <internalFilesDir>/melonmix_debug.txt
+    // (rooted device -> adb-writable) so each A/B is a one-line echo, not a rebuild. Timings
+    // are logged every kDbgReportFrames frames via LOG_INFO(tag "MelonMixPerf").
+    bool khDbgFovWiden = true;    // gate the widescreen FOV RAM write in setAspectRatio
+    bool khDbgPolyHook = true;    // gate the per-polygon rewrite hook (plugin->ApplyPolygonChanges)
+    bool khDbgCompositeFS = true; // gate the plugin composite FS vs stock nearest FS (GL only)
+    long khDbgLastPollFrame = -1000;
+    // accumulated timings over the current report window (nanoseconds)
+    uint64_t khStatRefreshNs = 0;
+    uint64_t khStatBuildNs = 0;
+    uint64_t khStatRunFrameNs = 0;
+    int khStatFrames = 0;
+    std::chrono::steady_clock::time_point khStatWallStart{};
 
     std::atomic<float> motionData[6] = { 0.0f, 0.0f, 9.80665f, 0.0f, 0.0f, 0.0f };
 
