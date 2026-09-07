@@ -115,6 +115,12 @@ private:
     uint64_t khStatRunFrameNs = 0;
     int khStatFrames = 0;
     std::chrono::steady_clock::time_point khStatWallStart{};
+    // worst-case per-frame stats over the window: dip characterization. maxFrame = longest
+    // single runFrame() body (work time, excludes the frontend frame limiter); over = frames
+    // whose body exceeded the 60fps budget (16.9ms incl. slack). Many slightly-over frames =
+    // sustained heavier scene; a few huge ones = one-off spikes (GC, autosave, cache miss).
+    uint64_t khStatMaxFrameNs = 0;
+    int khStatOverFrames = 0;
 
     // [KHMM-DBG] audio-underrun probe. Written on the oboe audio thread (readAudioOutput),
     // read+reset on the emu thread (khReportPerf) -> atomics. The theory under test: in-game

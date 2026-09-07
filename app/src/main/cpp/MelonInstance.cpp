@@ -335,6 +335,8 @@ u32 MelonInstance::runFrame()
     {
         khStatWallStart = std::chrono::steady_clock::now();
     }
+    // [KHMM-DBG] per-frame work time (whole runFrame body) for the worst-case stats
+    auto khFrameStart = std::chrono::steady_clock::now();
 
     // [KHMM] Single-screen presentation keystone. The KH plugin composites the whole
     // enhanced image into the DS *top-screen* region and expects the frontend to supply
@@ -500,7 +502,15 @@ u32 MelonInstance::runFrame()
         saveRewindState(nextRewindState);
     }
 
-    // [KHMM-DBG] close out the timing window
+    // [KHMM-DBG] close out the timing window; track worst-case per-frame work time
+    {
+        uint64_t khFrameNs = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - khFrameStart).count();
+        if (khFrameNs > khStatMaxFrameNs)
+            khStatMaxFrameNs = khFrameNs;
+        if (khFrameNs > 16900000ull) // 16.9ms = 60fps budget + slack
+            khStatOverFrames++;
+    }
     khStatFrames++;
     if (khStatFrames >= kDbgReportFrames)
     {
@@ -621,9 +631,13 @@ void MelonInstance::khReportPerf()
     uint64_t aBufAccum = khAudioBufAccum.exchange(0, std::memory_order_relaxed);
     double avgBuf = aReads > 0 ? (double) aBufAccum / aReads : 0.0;
 
+    // [KHMM-DBG] worst-case per-frame stats (dip characterization): max = longest runFrame body
+    // this window; over = frames whose body blew the 16.9ms budget.
+    double maxFrameMs = khStatMaxFrameNs / 1.0e6;
+
     LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
-             fps, frameMs, runMs, emuMs, glRenderMs, refreshMs, buildMs,
+             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             fps, frameMs, maxFrameMs, khStatOverFrames, runMs, emuMs, glRenderMs, refreshMs, buildMs,
              glScale,
              glDetailMs[melonDS::KH_GL_UBO], glDetailMs[melonDS::KH_GL_VRAMTEX],
              glDetailMs[melonDS::KH_GL_PAL], glDetailMs[melonDS::KH_GL_POLY],
@@ -638,6 +652,8 @@ void MelonInstance::khReportPerf()
     khStatBuildNs = 0;
     khStatRunFrameNs = 0;
     khStatFrames = 0;
+    khStatMaxFrameNs = 0;
+    khStatOverFrames = 0;
 }
 
 void MelonInstance::stop()
