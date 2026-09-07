@@ -696,7 +696,7 @@ void MelonInstance::khReportPerf()
     soft2D.Kh2DTakeBlockReasons(1, whyB);
 
     LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | emu: cpu=%.2f 2d=%.2f 3dg=%.2f spu=%.2f | 2dskip: a=%u b=%u (a:g%um%uh%uv%u b:g%um%uh%uv%u) | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | emu: cpu=%.2f 2d=%.2f 3dg=%.2f spu=%.2f | 2dskip: a=%u b=%u (a:g%um%uh%uv%u b:g%um%uh%uv%u) | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s ptype=0x%02x",
              fps, frameMs, maxFrameMs, khStatOverFrames, runMs, emuMs, glRenderMs, refreshMs, buildMs,
              emuCpuMs, emuDetailMs[melonDS::KH_EMU_2D], emuDetailMs[melonDS::KH_EMU_3DGEO],
              emuDetailMs[melonDS::KH_EMU_SPU],
@@ -711,7 +711,8 @@ void MelonInstance::khReportPerf()
              polysPerFrame, shapeCount,
              aReads, aEmpty, aPartial, avgBuf,
              khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0, khDbgPolyHook ? 1 : 0,
-             khDbgCompositeFS ? 1 : 0, rend);
+             khDbgCompositeFS ? 1 : 0, rend,
+             plugin != nullptr ? plugin->debugPauseScreenType() & 0xFF : 0xFF); // [KHMM-DBG] pause-type byte
 
     khStatRefreshNs = 0;
     khStatBuildNs = 0;
@@ -986,7 +987,13 @@ void MelonInstance::loadPlugin(u32 gameCode)
     // the setting (khEnhancedGraphics) gates the per-frame driver, composite FS, and
     // polygon hook at runtime instead, which lets the user toggle it mid-session in both
     // directions without reloading the ROM. All other config keys resolve to safe defaults.
+    //
+    // The KH plugins read the DS firmware language ("Instance0.Firmware.Language",
+    // 0=JA 1=EN 2=FR 3=DE 4=IT 5=ES 6=ZH) to pick the pause/skip-menu string language —
+    // returning 0 for it would mean Japanese menus. "Instance0.Firmware.TrueLanguage" is
+    // desktop KHMM's language override setting (0 = follow the DS language), left at 0.
     bool enhanced = true;
+    int firmwareLanguage = currentConfiguration->firmwareConfiguration.language;
     plugin->loadConfigs(
         [enhanced](std::string path) -> bool {
             if (!enhanced &&
@@ -995,7 +1002,11 @@ void MelonInstance::loadPlugin(u32 gameCode)
                 return true;
             return false;
         },
-        [](std::string) -> int { return 0; },
+        [firmwareLanguage](std::string path) -> int {
+            if (path == "Instance0.Firmware.Language")
+                return firmwareLanguage;
+            return 0;
+        },
         [](std::string) -> std::string { return std::string(); }
     );
 
