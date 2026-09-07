@@ -1,6 +1,6 @@
 [submodule "melonDS-android-lib"]
 	path = melonDS-android-lib
-	url = git@github.com:Nireves333/melonDS-android-lib.git
+	url = git@github.com:Nireves333/melonMix-android-lib.git
 
 [submodule "app/src/main/cpp/oboe"]
 	path = app/src/main/cpp/oboe
