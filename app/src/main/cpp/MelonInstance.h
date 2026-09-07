@@ -116,6 +116,17 @@ private:
     int khStatFrames = 0;
     std::chrono::steady_clock::time_point khStatWallStart{};
 
+    // [KHMM-DBG] audio-underrun probe. Written on the oboe audio thread (readAudioOutput),
+    // read+reset on the emu thread (khReportPerf) -> atomics. The theory under test: in-game
+    // audio distortion is SPU output-buffer starvation caused by sub-60fps gameplay (the emu
+    // produces <48kHz worth of samples/sec, the ring drains, ReadOutput returns 0 / short).
+    // empty = reads that hit an empty ring (silence gap); partial = reads that got fewer
+    // samples than requested (last-sample-hold in OboeCallback); buf = avg ring fill at read.
+    std::atomic<uint32_t> khAudioReads{0};
+    std::atomic<uint32_t> khAudioEmpty{0};
+    std::atomic<uint32_t> khAudioPartial{0};
+    std::atomic<uint64_t> khAudioBufAccum{0};
+
     std::atomic<float> motionData[6] = { 0.0f, 0.0f, 9.80665f, 0.0f, 0.0f, 0.0f };
 
     std::unique_ptr<RetroAchievements::RetroAchievementsManager> retroAchievementsManager;

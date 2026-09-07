@@ -584,8 +584,12 @@ void MelonInstance::khReportPerf()
     double runMs = (khStatRunFrameNs / 1.0e6) / frames;
 
     uint32_t polyCalls = 0;
+    uint32_t shapeCount = 0;
     if (plugin != nullptr)
+    {
         polyCalls = plugin->debugTakePolyHookCalls();
+        shapeCount = plugin->debugShapeCount3D();
+    }
     double polysPerFrame = (double) polyCalls / frames;
 
     // [KHMM-DBG] GL render+composite time (runs inside RunFrame); the remainder of runframe is
@@ -597,9 +601,19 @@ void MelonInstance::khReportPerf()
     const char* rend = currentRenderer == Renderer::OpenGl ? "GL"
                      : currentRenderer == Renderer::Compute ? "CS" : "SW";
 
+    // [KHMM-DBG] drain the audio-underrun probe (written on the audio thread). empty/partial
+    // are counts over the window; buf is the average SPU ring fill at read time. If these
+    // spike while fps<60, in-game distortion == SPU starvation from sub-full-speed emulation.
+    uint32_t aReads = khAudioReads.exchange(0, std::memory_order_relaxed);
+    uint32_t aEmpty = khAudioEmpty.exchange(0, std::memory_order_relaxed);
+    uint32_t aPartial = khAudioPartial.exchange(0, std::memory_order_relaxed);
+    uint64_t aBufAccum = khAudioBufAccum.exchange(0, std::memory_order_relaxed);
+    double avgBuf = aReads > 0 ? (double) aBufAccum / aReads : 0.0;
+
     LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | polys/f=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
-             fps, frameMs, runMs, emuMs, glRenderMs, refreshMs, buildMs, polysPerFrame,
+             "fps=%.1f frame=%.1fms | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             fps, frameMs, runMs, emuMs, glRenderMs, refreshMs, buildMs, polysPerFrame, shapeCount,
+             aReads, aEmpty, aPartial, avgBuf,
              khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0, khDbgPolyHook ? 1 : 0,
              khDbgCompositeFS ? 1 : 0, rend);
 
@@ -673,7 +687,17 @@ void MelonInstance::releaseKey(u32 key)
 
 int MelonInstance::readAudioOutput(s16* buffer, int length)
 {
-    return nds->SPU.ReadOutput(buffer, length);
+    // [KHMM-DBG] audio-underrun probe (audio thread). Sample the ring fill BEFORE draining,
+    // then classify this read as empty / partial / full. khReportPerf drains these atomics.
+    int bufBefore = nds->SPU.GetOutputSize();
+    int got = nds->SPU.ReadOutput(buffer, length);
+    khAudioReads.fetch_add(1, std::memory_order_relaxed);
+    khAudioBufAccum.fetch_add((uint32_t) bufBefore, std::memory_order_relaxed);
+    if (got < 1)
+        khAudioEmpty.fetch_add(1, std::memory_order_relaxed);
+    else if (got < length)
+        khAudioPartial.fetch_add(1, std::memory_order_relaxed);
+    return got;
 }
 
 void MelonInstance::setAudioOutputSkew(double skew)
