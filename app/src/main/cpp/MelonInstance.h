@@ -122,10 +122,6 @@ private:
     // sustained heavier scene; a few huge ones = one-off spikes (GC, autosave, cache miss).
     uint64_t khStatMaxFrameNs = 0;
     int khStatOverFrames = 0;
-    // 2D-static probe: per-unit framebuffer hash history (indexed [unit][frontbuffer]) and
-    // count of frames whose 2D output was identical to two frames ago (per report window).
-    uint64_t khStat2dPrevHash[2][2] = {{0, 0}, {0, 0}};
-    int khStat2dStatic[2] = {0, 0};
 
     // [KHMM-DBG] audio-underrun probe. Written on the oboe audio thread (readAudioOutput),
     // read+reset on the emu thread (khReportPerf) -> atomics. The theory under test: in-game
