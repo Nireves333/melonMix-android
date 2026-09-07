@@ -1,7 +1,6 @@
 #include <ctime>
 #include <chrono>
 #include <cstdint>
-#include <fstream>
 #include <string>
 #include <algorithm> // [KHMM] std::min in khFirePauseMenuEvent
 #include <vector>    // [KHMM] event payload packing
@@ -24,8 +23,6 @@
 #include "net/Net_Slirp.h"
 #include "Platform.h"
 #include "SDCardArgsBuilder.h"
-#include "MelonLog.h" // [KHMM-DBG] perf instrumentation logging
-#include "KhPerfDetail.h" // [KHMM-DBG] emu fine-split buckets
 #include "AndroidMelonEventMessenger.h" // [KHMM] EVENT_KH_* pause-menu overlay events
 #include "EmulatorMessageQueueJNI.h"    // [KHMM] fireEmulatorEvent
 
@@ -37,11 +34,6 @@ namespace MelonDSAndroid
 {
 
 const int kRewindBufferSize = 1024 * 1024 * 20; // Use 20MB per savestate
-
-// [KHMM-DBG] perf instrumentation constants (temporary).
-static const char* kDbgTag = "MelonMixPerf";
-static const int kDbgReportFrames = 120; // log a timing window roughly every ~2s @60fps
-static const int kDbgPollFrames = 60;    // re-read the debug control file ~once/second
 const int kRewindScreenshotSize = 256 * 384 * 4;
 
 MelonInstance::MelonInstance(int instanceId, std::shared_ptr<EmulatorConfiguration> configuration, std::unique_ptr<melonDS::NDSArgs> args, std::shared_ptr<Net> net, std::unique_ptr<ScreenshotRenderer> screenshotRenderer, int consoleType) :
@@ -332,19 +324,6 @@ u32 MelonInstance::runFrame()
         isRenderConfigurationDirty = false;
     }
 
-    // [KHMM-DBG] Re-read runtime perf toggles (~once/second) and start the timing window.
-    if (frame - khDbgLastPollFrame >= kDbgPollFrames)
-    {
-        khPollDebugControls();
-        khDbgLastPollFrame = frame;
-    }
-    if (khStatFrames == 0)
-    {
-        khStatWallStart = std::chrono::steady_clock::now();
-    }
-    // [KHMM-DBG] per-frame work time (whole runFrame body) for the worst-case stats
-    auto khFrameStart = std::chrono::steady_clock::now();
-
     // [KHMM] Single-screen presentation keystone. The KH plugin composites the whole
     // enhanced image into the DS *top-screen* region and expects the frontend to supply
     // the target display aspect ratio (the desktop calls Plugin::setAspectRatio from its
@@ -360,9 +339,9 @@ u32 MelonInstance::runFrame()
     // other renderer the plugin stays loaded but inert (stock DS rendering).
     bool khPluginActive = khEnhancedGraphics && currentRenderer == Renderer::OpenGl;
 
-    if (khPluginActive && khDbgFovWiden && plugin != nullptr && plugin->isReady())
+    if (khPluginActive && plugin != nullptr && plugin->isReady())
     {
-        plugin->setAspectRatio(khAspectRatio.load(std::memory_order_relaxed)); // [KHMM-DBG] gated by khDbgFovWiden
+        plugin->setAspectRatio(khAspectRatio.load(std::memory_order_relaxed));
     }
 
     int screenWidth;
@@ -434,14 +413,8 @@ u32 MelonInstance::runFrame()
     // RunFrame here (GPU::Blit), so both must run just before it. Both are CPU-only.
     if (khPluginActive && plugin != nullptr && plugin->isReady())
     {
-        // [KHMM-DBG] time the two CPU-side plugin stages separately
-        auto t0 = std::chrono::steady_clock::now();
         plugin->refreshGameScene();
-        auto t1 = std::chrono::steady_clock::now();
         plugin->buildShapes();
-        auto t2 = std::chrono::steady_clock::now();
-        khStatRefreshNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-        khStatBuildNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
 
         // [KHMM] Per-frame plugin input hook (desktop: EmuThread.cpp:326). This is what
         // mirrors the game's pause-menu cursor into the overlay (Plugin.cpp:401 tracks
@@ -466,27 +439,19 @@ u32 MelonInstance::runFrame()
     }
 
     // [KHMM] apply the runtime enhanced-graphics gates. The polygon-rewrite hook and the
-    // composite FS follow the user's enhanced-graphics setting (AND the [KHMM-DBG] A/B
-    // toggles), so switching the setting mid-session cleanly falls back to stock rendering.
+    // composite FS follow the user's enhanced-graphics setting, so switching the setting
+    // mid-session cleanly falls back to stock rendering.
     if (plugin != nullptr)
     {
-        plugin->debugSetApplyPolygonChanges(khDbgPolyHook && khPluginActive);
+        plugin->setApplyPolygonChanges(khPluginActive);
     }
-
-    // [KHMM] apply the 2D frame-cache toggle (the 2D renderer is always the software renderer)
-    static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D()).Kh2DSkipEnabled = khDbg2DSkip;
 
     if (currentRenderer == Renderer::OpenGl)
     {
-        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khDbgCompositeFS && khPluginActive);
+        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khPluginActive);
     }
 
-    // [KHMM-DBG] RunFrame carries the emulation + 3D render (incl. the polygon hook) + the
-    // in-RunFrame GL composite, so this is the GPU-side cost we compare against the CPU stages.
-    auto tRun0 = std::chrono::steady_clock::now();
     u32 nLines = nds->RunFrame();
-    auto tRun1 = std::chrono::steady_clock::now();
-    khStatRunFrameNs += std::chrono::duration_cast<std::chrono::nanoseconds>(tRun1 - tRun0).count();
     retroAchievementsManager->FrameUpdate();
 
     if (!isRendererAccelerated)
@@ -539,187 +504,7 @@ u32 MelonInstance::runFrame()
         saveRewindState(nextRewindState);
     }
 
-    // [KHMM-DBG] close out the timing window; track worst-case per-frame work time
-    {
-        uint64_t khFrameNs = (uint64_t) std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - khFrameStart).count();
-        if (khFrameNs > khStatMaxFrameNs)
-            khStatMaxFrameNs = khFrameNs;
-        if (khFrameNs > 16900000ull) // 16.9ms = 60fps budget + slack
-            khStatOverFrames++;
-    }
-    khStatFrames++;
-    if (khStatFrames >= kDbgReportFrames)
-    {
-        khReportPerf();
-    }
-
     return nLines;
-}
-
-// [KHMM-DBG] Read runtime perf toggles from <internalFilesDir>/melonmix_debug.txt so each A/B
-// is a one-line echo on the (rooted) device instead of a rebuild. Format: one "key=value" per
-// line; keys enhanced/fov/hook, values 1/0 (true/false/on/off/yes also accepted). Missing file
-// or missing keys leave the current state untouched. Called ~once/second from runFrame.
-void MelonInstance::khPollDebugControls()
-{
-    if (currentConfiguration == nullptr || currentConfiguration->internalFilesDir == nullptr)
-        return;
-
-    std::string path = std::string(currentConfiguration->internalFilesDir) + "/melonmix_debug.txt";
-    std::ifstream file(path);
-    if (!file.is_open())
-        return;
-
-    auto trim = [](std::string s) -> std::string {
-        size_t a = s.find_first_not_of(" \t\r\n");
-        size_t b = s.find_last_not_of(" \t\r\n");
-        if (a == std::string::npos) return "";
-        return s.substr(a, b - a + 1);
-    };
-
-    // NOTE: the old "enhanced" key is intentionally ignored — enhanced graphics is now a real
-    // in-app setting (enable_enhanced_graphics) and the debug file must not fight it.
-    bool newFov = khDbgFovWiden;
-    bool newHook = khDbgPolyHook;
-    bool newFs = khDbgCompositeFS;
-    bool new2DSkip = khDbg2DSkip;
-
-    std::string line;
-    while (std::getline(file, line))
-    {
-        // tolerate a leading UTF-8 BOM (editors/echo often prepend EF BB BF)
-        if (line.size() >= 3 && (unsigned char) line[0] == 0xEF &&
-            (unsigned char) line[1] == 0xBB && (unsigned char) line[2] == 0xBF)
-            line.erase(0, 3);
-        size_t eq = line.find('=');
-        if (eq == std::string::npos)
-            continue;
-        std::string key = trim(line.substr(0, eq));
-        std::string val = trim(line.substr(eq + 1));
-        bool on = (val == "1" || val == "true" || val == "on" || val == "yes");
-        if (key == "fov") newFov = on;
-        else if (key == "hook") newHook = on;
-        else if (key == "fs") newFs = on;
-        else if (key == "2dskip") new2DSkip = on;
-    }
-
-    if (newFov != khDbgFovWiden || newHook != khDbgPolyHook ||
-        newFs != khDbgCompositeFS || new2DSkip != khDbg2DSkip)
-    {
-        khDbgFovWiden = newFov;
-        khDbgPolyHook = newHook;
-        khDbgCompositeFS = newFs;
-        khDbg2DSkip = new2DSkip;
-        LOG_INFO(kDbgTag, "controls updated: fov=%d hook=%d fs=%d 2dskip=%d",
-                 khDbgFovWiden ? 1 : 0,
-                 khDbgPolyHook ? 1 : 0, khDbgCompositeFS ? 1 : 0, khDbg2DSkip ? 1 : 0);
-    }
-}
-
-// [KHMM-DBG] Log one per-stage timing window and reset the accumulators. fps/frame are measured
-// wall-clock over the window; refresh/build are the CPU-side plugin stages; runframe carries the
-// emulation + 3D render (incl. the polygon hook) + the in-RunFrame GL composite; polys/f is the
-// number of polygons pushed through the rewrite hook per frame (geometry inflation probe).
-void MelonInstance::khReportPerf()
-{
-    auto now = std::chrono::steady_clock::now();
-    double wallMs = std::chrono::duration_cast<std::chrono::microseconds>(now - khStatWallStart).count() / 1000.0;
-    int frames = khStatFrames > 0 ? khStatFrames : 1;
-    double fps = wallMs > 0.0 ? (frames * 1000.0 / wallMs) : 0.0;
-    double frameMs = wallMs / frames;
-    double refreshMs = (khStatRefreshNs / 1.0e6) / frames;
-    double buildMs = (khStatBuildNs / 1.0e6) / frames;
-    double runMs = (khStatRunFrameNs / 1.0e6) / frames;
-
-    uint32_t polyCalls = 0;
-    uint32_t shapeCount = 0;
-    if (plugin != nullptr)
-    {
-        polyCalls = plugin->debugTakePolyHookCalls();
-        shapeCount = plugin->debugShapeCount3D();
-    }
-    double polysPerFrame = (double) polyCalls / frames;
-
-    // [KHMM-DBG] GL render+composite time (runs inside RunFrame); the remainder of runframe is
-    // ~emulation. Splits the mystery cost into CPU-emulation vs GL-render.
-    uint64_t glNanos = g_khGlRenderNanos.exchange(0, std::memory_order_relaxed);
-    double glRenderMs = (glNanos / 1.0e6) / frames;
-    double emuMs = runMs - glRenderMs;
-
-    // [KHMM-DBG] fine split of emu (see KhEmuDetail in KhPerfDetail.h); cpu = the untimed
-    // remainder ~= ARM9/ARM7 CPU (JIT) + DMA + scheduler + IO. Tells us which emu component
-    // grows in heavy scenes (and whether optimization can reach it at all).
-    double emuDetailMs[melonDS::KH_EMU_DETAIL_COUNT];
-    double emuDetailSum = 0.0;
-    for (int i = 0; i < melonDS::KH_EMU_DETAIL_COUNT; i++)
-    {
-        emuDetailMs[i] = (melonDS::g_khEmuDetailNanos[i].exchange(0, std::memory_order_relaxed) / 1.0e6) / frames;
-        emuDetailSum += emuDetailMs[i];
-    }
-    double emuCpuMs = emuMs - emuDetailSum;
-
-    // [KHMM-DBG] fine split of glrender (see KhGlDetail in GPU_OpenGL.h); residual = untimed
-    // sections (clear pass, state setup). Locates the cost inside the GL frame.
-    double glDetailMs[melonDS::KH_GL_DETAIL_COUNT];
-    double glDetailSum = 0.0;
-    for (int i = 0; i < melonDS::KH_GL_DETAIL_COUNT; i++)
-    {
-        glDetailMs[i] = (g_khGlDetailNanos[i].exchange(0, std::memory_order_relaxed) / 1.0e6) / frames;
-        glDetailSum += glDetailMs[i];
-    }
-    int glScale = g_khGlScale.load(std::memory_order_relaxed);
-
-    const char* rend = currentRenderer == Renderer::OpenGl ? "GL"
-                     : currentRenderer == Renderer::Compute ? "CS" : "SW";
-
-    // [KHMM-DBG] drain the audio-underrun probe (written on the audio thread). empty/partial
-    // are counts over the window; buf is the average SPU ring fill at read time. If these
-    // spike while fps<60, in-game distortion == SPU starvation from sub-full-speed emulation.
-    uint32_t aReads = khAudioReads.exchange(0, std::memory_order_relaxed);
-    uint32_t aEmpty = khAudioEmpty.exchange(0, std::memory_order_relaxed);
-    uint32_t aPartial = khAudioPartial.exchange(0, std::memory_order_relaxed);
-    uint64_t aBufAccum = khAudioBufAccum.exchange(0, std::memory_order_relaxed);
-    double avgBuf = aReads > 0 ? (double) aBufAccum / aReads : 0.0;
-
-    // [KHMM-DBG] worst-case per-frame stats (dip characterization): max = longest runFrame body
-    // this window; over = frames whose body blew the 16.9ms budget.
-    double maxFrameMs = khStatMaxFrameNs / 1.0e6;
-
-    // [KHMM] 2D frame cache effectiveness: unit-frames actually skipped this window, plus
-    // [KHMM-DBG] why-not-static counts (g=gate m=midframe-reg-write h=hash v=vram)
-    auto& soft2D = static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D());
-    uint32_t skip2dA = soft2D.Kh2DTakeSkipped(0);
-    uint32_t skip2dB = soft2D.Kh2DTakeSkipped(1);
-    uint32_t whyA[4], whyB[4];
-    soft2D.Kh2DTakeBlockReasons(0, whyA);
-    soft2D.Kh2DTakeBlockReasons(1, whyB);
-
-    LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | emu: cpu=%.2f 2d=%.2f 3dg=%.2f spu=%.2f | 2dskip: a=%u b=%u (a:g%um%uh%uv%u b:g%um%uh%uv%u) | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s ptype=0x%02x",
-             fps, frameMs, maxFrameMs, khStatOverFrames, runMs, emuMs, glRenderMs, refreshMs, buildMs,
-             emuCpuMs, emuDetailMs[melonDS::KH_EMU_2D], emuDetailMs[melonDS::KH_EMU_3DGEO],
-             emuDetailMs[melonDS::KH_EMU_SPU],
-             skip2dA, skip2dB,
-             whyA[0], whyA[1], whyA[2], whyA[3],
-             whyB[0], whyB[1], whyB[2], whyB[3],
-             glScale,
-             glDetailMs[melonDS::KH_GL_UBO], glDetailMs[melonDS::KH_GL_VRAMTEX],
-             glDetailMs[melonDS::KH_GL_PAL], glDetailMs[melonDS::KH_GL_POLY],
-             glDetailMs[melonDS::KH_GL_DRAW], glDetailMs[melonDS::KH_GL_COMP],
-             glRenderMs - glDetailSum,
-             polysPerFrame, shapeCount,
-             aReads, aEmpty, aPartial, avgBuf,
-             khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0, khDbgPolyHook ? 1 : 0,
-             khDbgCompositeFS ? 1 : 0, rend,
-             plugin != nullptr ? plugin->debugPauseScreenType() & 0xFF : 0xFF); // [KHMM-DBG] pause-type byte
-
-    khStatRefreshNs = 0;
-    khStatBuildNs = 0;
-    khStatRunFrameNs = 0;
-    khStatFrames = 0;
-    khStatMaxFrameNs = 0;
-    khStatOverFrames = 0;
 }
 
 void MelonInstance::stop()
@@ -786,17 +571,7 @@ void MelonInstance::releaseKey(u32 key)
 
 int MelonInstance::readAudioOutput(s16* buffer, int length)
 {
-    // [KHMM-DBG] audio-underrun probe (audio thread). Sample the ring fill BEFORE draining,
-    // then classify this read as empty / partial / full. khReportPerf drains these atomics.
-    int bufBefore = nds->SPU.GetOutputSize();
-    int got = nds->SPU.ReadOutput(buffer, length);
-    khAudioReads.fetch_add(1, std::memory_order_relaxed);
-    khAudioBufAccum.fetch_add((uint32_t) bufBefore, std::memory_order_relaxed);
-    if (got < 1)
-        khAudioEmpty.fetch_add(1, std::memory_order_relaxed);
-    else if (got < length)
-        khAudioPartial.fetch_add(1, std::memory_order_relaxed);
-    return got;
+    return nds->SPU.ReadOutput(buffer, length);
 }
 
 void MelonInstance::setAudioOutputSkew(double skew)

@@ -87,8 +87,6 @@ private:
     // frontend draws this menu as a Qt widget (PauseMenuOverlay); the composite deliberately
     // hides the game's own pause menu, so without a frontend overlay the menu is invisible.
     void khFirePauseMenuEvent(bool visible);
-    void khPollDebugControls(); // [KHMM-DBG] read runtime perf toggles from the debug control file
-    void khReportPerf();        // [KHMM-DBG] log the per-stage timing window and reset accumulators
 
 private:
     int instanceId;
@@ -111,40 +109,6 @@ private:
     // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read
     // on the emu thread -> atomic.
     std::atomic<float> khAspectRatio { 16.0f / 9.0f };
-
-    // [KHMM-DBG] runtime perf instrumentation (temporary; grep [KHMM-DBG] to remove).
-    // Isolates the single-screen composite's cost so we can decide if the feature set is
-    // realistic on the RG505. Live toggles are read from <internalFilesDir>/melonmix_debug.txt
-    // (rooted device -> adb-writable) so each A/B is a one-line echo, not a rebuild. Timings
-    // are logged every kDbgReportFrames frames via LOG_INFO(tag "MelonMixPerf").
-    bool khDbgFovWiden = true;    // gate the widescreen FOV RAM write in setAspectRatio
-    bool khDbgPolyHook = true;    // gate the per-polygon rewrite hook (plugin->ApplyPolygonChanges)
-    bool khDbgCompositeFS = true; // gate the plugin composite FS vs stock nearest FS (GL only)
-    bool khDbg2DSkip = true;      // gate the [KHMM] 2D frame cache (skip static 2D frames)
-    long khDbgLastPollFrame = -1000;
-    // accumulated timings over the current report window (nanoseconds)
-    uint64_t khStatRefreshNs = 0;
-    uint64_t khStatBuildNs = 0;
-    uint64_t khStatRunFrameNs = 0;
-    int khStatFrames = 0;
-    std::chrono::steady_clock::time_point khStatWallStart{};
-    // worst-case per-frame stats over the window: dip characterization. maxFrame = longest
-    // single runFrame() body (work time, excludes the frontend frame limiter); over = frames
-    // whose body exceeded the 60fps budget (16.9ms incl. slack). Many slightly-over frames =
-    // sustained heavier scene; a few huge ones = one-off spikes (GC, autosave, cache miss).
-    uint64_t khStatMaxFrameNs = 0;
-    int khStatOverFrames = 0;
-
-    // [KHMM-DBG] audio-underrun probe. Written on the oboe audio thread (readAudioOutput),
-    // read+reset on the emu thread (khReportPerf) -> atomics. The theory under test: in-game
-    // audio distortion is SPU output-buffer starvation caused by sub-60fps gameplay (the emu
-    // produces <48kHz worth of samples/sec, the ring drains, ReadOutput returns 0 / short).
-    // empty = reads that hit an empty ring (silence gap); partial = reads that got fewer
-    // samples than requested (last-sample-hold in OboeCallback); buf = avg ring fill at read.
-    std::atomic<uint32_t> khAudioReads{0};
-    std::atomic<uint32_t> khAudioEmpty{0};
-    std::atomic<uint32_t> khAudioPartial{0};
-    std::atomic<uint64_t> khAudioBufAccum{0};
 
     std::atomic<float> motionData[6] = { 0.0f, 0.0f, 9.80665f, 0.0f, 0.0f, 0.0f };
 
