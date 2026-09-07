@@ -380,9 +380,29 @@ namespace MelonDSAndroid
         return false;
     }
 
+    // [KHMM] see MelonDS.h
+    std::atomic_bool khCutsceneFastForward { false };
+    std::atomic_bool khEmuHoldForCutscene { false };
+
+    void khCutsceneEnded()
+    {
+        if (instance)
+            instance->khCutsceneEnded();
+    }
+
+    void khCutsceneFailed(std::string error)
+    {
+        if (instance)
+            instance->khCutsceneFailed(std::move(error));
+    }
+
     void stop()
     {
         instance->stop();
+        // [KHMM] never leave cutscene overrides latched across a session teardown
+        khCutsceneFastForward = false;
+        khEmuHoldForCutscene = false;
+        OboeCallback::khMuteDsAudio = false;
         cleanupOpenGlContext();
     }
 

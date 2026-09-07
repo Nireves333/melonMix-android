@@ -143,5 +143,14 @@ object MelonEmulator {
     // [KHMM] true if the KH Melon Mix plugin supports this gamecode (little-endian packed)
     external fun isEnhancedGameCode(gameCode: Int): Boolean
 
+    // [KHMM] directory containing the "assets" folder with the KH Melon Mix packs
+    // (HD cutscene videos etc.) — the app-specific external files dir
+    external fun setKhAssetsRoot(path: String)
+
+    // [KHMM] HD replacement cutscene video player returns: the video finished playing
+    // naturally / failed to play (the plugin then blacklists it and resumes the DS cutscene)
+    external fun onKhCutsceneEnded()
+    external fun onKhCutsceneFailed(error: String)
+
     external fun updateMotionData(ax: Float, ay: Float, az: Float, rx: Float, ry: Float, rz: Float)
 }

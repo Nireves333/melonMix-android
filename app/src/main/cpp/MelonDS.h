@@ -1,6 +1,7 @@
 #ifndef MELONDS_MELONDS_H
 #define MELONDS_MELONDS_H
 
+#include <atomic>
 #include <list>
 #include <vector>
 #include "AndroidFileHandler.h"
@@ -46,6 +47,19 @@ namespace MelonDSAndroid {
     extern void setDisplayAspectRatio(float aspectRatio);
     // [KHMM] does the KH Melon Mix plugin system support this gamecode? (static query, no instance)
     extern bool isEnhancedGameCode(u32 gameCode);
+
+    // [KHMM] HD replacement cutscenes (desktop: EmuThread.cpp:896-956). While a replacement
+    // video plays, the emulator fast-forwards through its own prerendered cutscene hidden
+    // behind the video (khCutsceneFastForward bypasses the frame limiter — the plugin's
+    // end-of-cutscene handshake needs the DS advancing), and once the DS cutscene finishes
+    // before the video does, the emu loop parks (khEmuHoldForCutscene) until the video ends.
+    // Both are written from plugin callbacks / the emu thread and read by the emulate() loop.
+    extern std::atomic_bool khCutsceneFastForward;
+    extern std::atomic_bool khEmuHoldForCutscene;
+    // [KHMM] frontend -> plugin returns for the video player (desktop: MainWindowSettings
+    // stopVideo/cancelVideo): natural end of the video, and playback failure.
+    extern void khCutsceneEnded();
+    extern void khCutsceneFailed(std::string error);
 
     /**
      * Loads the NDS ROM and, optionally, the GBA ROM.

@@ -102,6 +102,7 @@ import me.magnum.melonds.ui.emulator.rewind.model.RewindWindow
 import me.magnum.melonds.ui.emulator.rom.SaveStateAdapter
 import me.magnum.melonds.ui.emulator.ui.AchievementListDialog
 import me.magnum.melonds.ui.emulator.ui.AchievementUpdatesUi
+import me.magnum.melonds.ui.emulator.ui.KhCutscenePlayerUi
 import me.magnum.melonds.ui.emulator.ui.KhPauseMenuUi
 import me.magnum.melonds.ui.emulator.ui.PendingSubmissionsDialog
 import me.magnum.melonds.ui.emulator.ui.RewindWindowUi
@@ -368,6 +369,18 @@ class EmulatorActivity : AppCompatActivity() {
                 // [KHMM] KH pause-menu overlay (the composite hides the game's native pause
                 // menu; the plugin mirrors its state and this draws the replacement)
                 val khPauseMenuState = viewModel.khPauseMenu.collectAsState()
+
+                // [KHMM] HD replacement cutscene video player. Composed BEFORE the pause menu
+                // so the cutscene skip menu draws on top of the video. The skip menu pauses
+                // playback while open (desktop: windowPauseVideo/windowUnpauseVideo).
+                val khCutsceneState = viewModel.khCutscene.collectAsState()
+                KhCutscenePlayerUi(
+                    state = khCutsceneState.value,
+                    pausedByMenu = khPauseMenuState.value != null,
+                    onEnded = { MelonEmulator.onKhCutsceneEnded() },
+                    onFailed = { MelonEmulator.onKhCutsceneFailed(it) },
+                )
+
                 KhPauseMenuUi(khPauseMenuState.value)
 
                 RewindWindowUi(

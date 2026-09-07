@@ -25,6 +25,8 @@
 #include "SDCardArgsBuilder.h"
 #include "AndroidMelonEventMessenger.h" // [KHMM] EVENT_KH_* pause-menu overlay events
 #include "EmulatorMessageQueueJNI.h"    // [KHMM] fireEmulatorEvent
+#include "MelonLog.h"                   // [KHMM] plugin OSD messages -> logcat
+#include "OboeCallback.h"               // [KHMM] khMuteDsAudio during HD cutscenes
 
 using namespace std;
 using namespace melonDS;
@@ -438,6 +440,14 @@ u32 MelonInstance::runFrame()
         }
     }
 
+    // [KHMM] While an HD replacement video plays, the hidden DS prerendered cutscene races
+    // to its end with the frame limiter bypassed (desktop: pluginShouldFastForward,
+    // EmuThread.cpp:555/896-899). Recomputed every frame so it can never stay latched.
+    khCutsceneFastForward.store(
+        khPluginActive && plugin != nullptr && plugin->isReady() &&
+        plugin->IsIngamePrerenderedCutsceneRunning() && plugin->IsReplacementCutsceneRunning(),
+        std::memory_order_relaxed);
+
     // [KHMM] apply the runtime enhanced-graphics gates. The polygon-rewrite hook and the
     // composite FS follow the user's enhanced-graphics setting, so switching the setting
     // mid-session cleanly falls back to stock rendering.
@@ -634,6 +644,17 @@ void MelonInstance::updateConfiguration(std::shared_ptr<EmulatorConfiguration> n
         khFirePauseMenuEvent(false);
     }
 
+    // [KHMM] same reasoning for an HD replacement cutscene: with the plugin driver inert,
+    // refreshCutscene stops running, so nothing would ever dismiss the video, lift the DS
+    // audio mute, or release a parked emu loop — clear all of it here.
+    if ((!khEnhancedGraphics || newConfiguration->renderer != Renderer::OpenGl) &&
+        plugin != nullptr && plugin->IsReplacementCutsceneRunning()) {
+        khEmuHoldForCutscene = false;
+        OboeCallback::khMuteDsAudio = false;
+        khCutsceneFastForward = false;
+        khFireCutsceneEvent(false);
+    }
+
     currentConfiguration = newConfiguration;
     isRenderConfigurationDirty = true;
 }
@@ -785,10 +806,12 @@ void MelonInstance::loadPlugin(u32 gameCode)
         [](std::string) -> std::string { return std::string(); }
     );
 
-    // Keep the replacement-texture (HD cutscene / texture) path OFF regardless of the
-    // enhanced-graphics toggle. loadConfigs always resets DisableReplacementTextures to
-    // false, so force it back to true here. Texture replacement is a separate feature
-    // chunk (its own memory/asset budget and toggle) and is not part of Step B.
+    // Keep the replacement-TEXTURE path OFF regardless of the enhanced-graphics toggle
+    // (this gates textures only; HD replacement cutscenes are gated separately and are
+    // ported — see the cutscene callbacks below). loadConfigs always resets
+    // DisableReplacementTextures to false, so force it back to true here. Texture
+    // replacement stays deferred: no pack in hand, and TextureEntry's by-value
+    // scenes[1000] array needs a RAM refactor before it is safe on Android.
     if (!plugin->areReplacementTexturesDisabled())
         plugin->replacementTexturesToggle();
 
@@ -803,54 +826,122 @@ void MelonInstance::loadPlugin(u32 gameCode)
     // widget, wired in EmuThread.cpp:243-280). Without these the menu exists (the plugin's
     // input mirror at Plugin.cpp:401 still runs) but nothing draws it. Every callback fires
     // a full snapshot event; the Kotlin side rebuilds the overlay from it each time.
-    // The cutscene trio is invoked UNGUARDED in Plugin.cpp, so it must be set even though
-    // it can only fire once HD replacement cutscenes are ported (they are forced off above);
-    // the game-pause snapshot getters are correct for both menus in that state.
+    // The cutscene trio is the skip menu shown OVER a playing HD replacement video; its
+    // selection lives in the plugin (_CutsceneSkipMenuSelection) and only reaches us through
+    // the callback argument.
     plugin->showGamePauseMenuOverlay = [this]() { khFirePauseMenuEvent(true); };
     plugin->hideGamePauseMenuOverlay = [this]() { khFirePauseMenuEvent(false); };
     plugin->updateGamePauseMenuOverlaySelection = [this](int) { khFirePauseMenuEvent(true); };
     plugin->refreshGamePauseMenuOverlayContent = [this]() { khFirePauseMenuEvent(true); };
-    plugin->showCutscenePauseMenuOverlay = [this](int) { khFirePauseMenuEvent(true); };
-    plugin->updateCutscenePauseMenuOverlaySelection = [this](int) { khFirePauseMenuEvent(true); };
+    plugin->showCutscenePauseMenuOverlay = [this](int selection) { khFirePauseMenuEvent(true, selection); };
+    plugin->updateCutscenePauseMenuOverlaySelection = [this](int selection) { khFirePauseMenuEvent(true, selection); };
     plugin->hideCutscenePauseMenuOverlay = [this]() { khFirePauseMenuEvent(false); };
+
+    // [KHMM] HD replacement cutscene lifecycle (desktop: EmuThread.cpp:240-266 + 910-956).
+    // The frontend plays the video (ExoPlayer) while the emulator, muted and hidden behind
+    // it, fast-forwards through its own prerendered cutscene — the plugin's end-of-cutscene
+    // handshake (didMobiCutsceneEnded) needs the DS advancing. Once the DS side finishes
+    // first, the emu loop parks (khEmuHoldForCutscene) until the video ends. The mute lifts
+    // and the loop resumes normal pacing when the plugin declares both sides done.
+    plugin->startReplacementCutscene = [this](std::string videoPath, std::string subtitlesPath) {
+        OboeCallback::khMuteDsAudio = true;
+        khFireCutsceneEvent(true, videoPath, subtitlesPath);
+    };
+    plugin->stopReplacementCutsceneAndResumeEmulator = [this]() {
+        khEmuHoldForCutscene = false;
+        khFireCutsceneEvent(false);
+    };
+    plugin->resumeHiddenEmulatorAfterReplacementCutsceneStopped = [this]() {
+        khEmuHoldForCutscene = false;
+        khFireCutsceneEvent(false);
+    };
+    plugin->pauseEmulatorAfterIngamePrerenderedCutsceneEndedBeforeReplacementCutscene = []() {
+        khEmuHoldForCutscene = true;
+    };
+    plugin->resumeEmulatorAfterBothIngamePrerenderedCutsceneAndReplacementCutsceneEnded = [this]() {
+        khEmuHoldForCutscene = false;
+        OboeCallback::khMuteDsAudio = false;
+        khFireCutsceneEvent(false);
+    };
+    plugin->postMessageToOsd = [](std::string message) {
+        LOG_WARN("MelonMixKh", "%s", message.c_str());
+    };
 
     delete oldPlugin;
 }
 
+// [KHMM] Shared payload helpers for the KH events (native byte order, length-prefixed UTF-8
+// strings; layout must match AndroidMelonEventMessenger.h / EmulatorEventType.kt).
+static void khAppendI32(std::vector<u8>& v, int32_t value)
+{
+    const u8* p = reinterpret_cast<const u8*>(&value);
+    v.insert(v.end(), p, p + sizeof(value));
+}
+
+static void khAppendStr(std::vector<u8>& v, const std::string& s, size_t cap)
+{
+    int32_t length = (int32_t) std::min(s.size(), cap);
+    khAppendI32(v, length);
+    v.insert(v.end(), s.begin(), s.begin() + length);
+}
+
 // [KHMM] Pack the pause-menu overlay snapshot and fire it at the frontend. Runs on the emu
-// thread (all callbacks fire from refreshGameScene / the input hook). Layout must match
-// AndroidMelonEventMessenger.h / EmulatorEventType.kt (native byte order, length-prefixed
-// UTF-8 strings). Total size must stay under the Kotlin queue's data buffer (512 bytes).
-void MelonInstance::khFirePauseMenuEvent(bool visible)
+// thread (all callbacks fire from refreshGameScene / the input hook). Total size must stay
+// under the Kotlin queue's data buffer (512 bytes). cutsceneMenuSelection >= 0 means this is
+// the cutscene skip menu shown over a playing HD video (desktop PauseMenuOverlay's cutscene
+// mode: Continue/Skip, no subtitle, no darkening — the video stays visible).
+void MelonInstance::khFirePauseMenuEvent(bool visible, int cutsceneMenuSelection)
 {
     khPauseMenuShown = visible;
-    auto appendI32 = [](std::vector<u8>& v, int32_t value) {
-        const u8* p = reinterpret_cast<const u8*>(&value);
-        v.insert(v.end(), p, p + sizeof(value));
-    };
-    auto appendStr = [&appendI32](std::vector<u8>& v, const std::string& s) {
-        // Cap defensively; menu strings are short ("Continue", "Überspringen", ...)
-        int32_t length = (int32_t) std::min(s.size(), (size_t) 64);
-        appendI32(v, length);
-        v.insert(v.end(), s.begin(), s.begin() + length);
-    };
+    bool isCutsceneMenu = cutsceneMenuSelection >= 0;
 
     std::vector<u8> payload;
     payload.reserve(256);
-    appendI32(payload, visible ? 1 : 0);
-    appendI32(payload, plugin->GamePauseMenuSelection());
-    appendI32(payload, plugin->gamePauseMenuDarkensBackground() ? 1 : 0);
-    appendI32(payload, (int32_t) (plugin->getHudScale() / 8.0f * 1000.0f)); // desktop: setSizeModifier(getHudScale()/8.0)
-    appendStr(payload, plugin->pauseMenuTitle());
-    appendStr(payload, plugin->gamePauseMenuSubtitle());
-    auto labels = plugin->gamePauseMenuButtonLabels();
+    khAppendI32(payload, visible ? 1 : 0);
+    khAppendI32(payload, isCutsceneMenu ? cutsceneMenuSelection : plugin->GamePauseMenuSelection());
+    khAppendI32(payload, (!isCutsceneMenu && plugin->gamePauseMenuDarkensBackground()) ? 1 : 0);
+    khAppendI32(payload, (int32_t) (plugin->getHudScale() / 8.0f * 1000.0f)); // desktop: setSizeModifier(getHudScale()/8.0)
+    khAppendStr(payload, plugin->pauseMenuTitle(), 64);
+    khAppendStr(payload, isCutsceneMenu ? std::string() : plugin->gamePauseMenuSubtitle(), 64);
+    auto labels = isCutsceneMenu ? plugin->cutsceneMenuButtonLabels() : plugin->gamePauseMenuButtonLabels();
     int32_t labelCount = (int32_t) std::min(labels.size(), (size_t) 4);
-    appendI32(payload, labelCount);
+    khAppendI32(payload, labelCount);
     for (int32_t i = 0; i < labelCount; i++) {
-        appendStr(payload, labels[i]);
+        khAppendStr(payload, labels[i], 64);
     }
 
     fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_PAUSE_MENU, (int) payload.size(), payload.data());
+}
+
+// [KHMM] Tell the frontend to start or dismiss the HD replacement cutscene video player
+// (desktop: windowStartVideo / windowStopVideo signals out of EmuThread). Fired from plugin
+// callbacks on the emu thread. Stop events carry no paths and may fire redundantly (the
+// Kotlin side treats them idempotently).
+void MelonInstance::khFireCutsceneEvent(bool playing, const std::string& videoPath, const std::string& subtitlesPath)
+{
+    std::vector<u8> payload;
+    payload.reserve(512);
+    khAppendI32(payload, playing ? 1 : 0);
+    if (playing) {
+        khAppendStr(payload, videoPath, 224);
+        khAppendStr(payload, subtitlesPath, 224);
+    }
+
+    fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_CUTSCENE, (int) payload.size(), payload.data());
+}
+
+// [KHMM] Video player returns (UI thread over JNI; desktop calls these from the Qt GUI
+// thread in MainWindowSettings::stopVideo/cancelVideo, so the threading model matches).
+void MelonInstance::khCutsceneEnded()
+{
+    if (plugin != nullptr && plugin->isReady())
+        plugin->skipIngamePrerenderedCutsceneAfterReplacementCutsceneFinishesNaturally();
+}
+
+void MelonInstance::khCutsceneFailed(std::string error)
+{
+    if (plugin != nullptr && plugin->isReady())
+        plugin->resumeIngamePrerenderedCutsceneAfterReplacementCutsceneFailedToPlay(std::move(error));
 }
 
 void MelonInstance::updateRenderer()

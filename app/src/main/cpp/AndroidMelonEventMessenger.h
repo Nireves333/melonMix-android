@@ -13,8 +13,12 @@ public:
     //   i32 visible, i32 selection, i32 darkenBackground, i32 sizeModifier*1000,
     //   str title, str subtitle, i32 labelCount, str labels[labelCount]
     // EVENT_KH_MENU_SOUND payload: i32 soundId (1=enter, 2=move, 3=continue, 4=select)
+    // EVENT_KH_CUTSCENE payload: i32 playing; when playing=1: str videoPath, str subtitlesPath
+    // (the frontend starts/stops the HD replacement video player; desktop: windowStartVideo /
+    // windowStopVideo). Paths are capped at 224 bytes each to fit the Kotlin data buffer.
     static constexpr int EVENT_KH_PAUSE_MENU = 300;
     static constexpr int EVENT_KH_MENU_SOUND = 301;
+    static constexpr int EVENT_KH_CUTSCENE = 302;
 
     void onRumbleStart(int durationMs) override;
     void onRumbleStop() override;

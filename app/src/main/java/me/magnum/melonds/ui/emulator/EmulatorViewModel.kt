@@ -50,6 +50,7 @@ import me.magnum.melonds.domain.model.VideoRenderer
 import me.magnum.melonds.domain.model.emulator.EmulatorEvent
 import me.magnum.melonds.domain.model.emulator.EmulatorSessionUpdateAction
 import me.magnum.melonds.domain.model.emulator.FirmwareLaunchResult
+import me.magnum.melonds.domain.model.emulator.KhCutsceneState
 import me.magnum.melonds.domain.model.emulator.KhPauseMenuState
 import me.magnum.melonds.domain.model.emulator.RomLaunchResult
 import me.magnum.melonds.domain.model.layout.BackgroundMode
@@ -155,6 +156,11 @@ class EmulatorViewModel @Inject constructor(
     // the emulator mirrors its content/cursor and we draw the replacement in Compose.
     private val _khPauseMenu = MutableStateFlow<KhPauseMenuState?>(null)
     val khPauseMenu = _khPauseMenu.asStateFlow()
+
+    // [KHMM] HD replacement cutscene currently playing (null = none). The video covers the
+    // emulator surface while the muted emulator fast-forwards behind it.
+    private val _khCutscene = MutableStateFlow<KhCutsceneState?>(null)
+    val khCutscene = _khCutscene.asStateFlow()
 
     private val _toastEvent = EventSharedFlow<ToastEvent>()
     val toastEvent = _toastEvent.asSharedFlow()
@@ -691,6 +697,15 @@ class EmulatorViewModel @Inject constructor(
                     EmulatorEvent.RumbleStop -> _rumbleEvent.tryEmit(RumbleEvent.RumbleStop)
                     // [KHMM] pause-menu overlay snapshot; null when hidden
                     is EmulatorEvent.KhPauseMenu -> _khPauseMenu.value = it.state.takeIf { state -> state.visible }
+                    // [KHMM] HD replacement cutscene start/dismiss. A dismiss also retracts a
+                    // cutscene skip menu left open (the plugin does not always fire the hide
+                    // when a skip completes; desktop's stopVideo hides it explicitly)
+                    is EmulatorEvent.KhCutscene -> {
+                        _khCutscene.value = it.state
+                        if (it.state == null) {
+                            _khPauseMenu.value = null
+                        }
+                    }
                     is EmulatorEvent.Stop -> {
                         when (it.reason) {
                             EmulatorEvent.Stop.Reason.GBAModeNotSupported -> _toastEvent.tryEmit(ToastEvent.GbaModeNotSupported)
@@ -698,6 +713,7 @@ class EmulatorViewModel @Inject constructor(
                             EmulatorEvent.Stop.Reason.PowerOff -> { /* no-op */ }
                         }
                         _khPauseMenu.value = null // [KHMM]
+                        _khCutscene.value = null // [KHMM]
                         stopEmulatorAndExit()
                     }
                 }

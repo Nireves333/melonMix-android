@@ -60,6 +60,10 @@ public:
     void updateConfiguration(std::shared_ptr<EmulatorConfiguration> newConfiguration);
     // [KHMM] real aspect ratio of the on-screen top-screen viewport (UI thread -> emu thread)
     void setDisplayAspectRatio(float aspectRatio) { khAspectRatio.store(aspectRatio, std::memory_order_relaxed); }
+    // [KHMM] HD-cutscene video player returns (called from the UI thread over JNI, mirroring
+    // desktop where the Qt GUI thread calls straight into the plugin; see MelonDS.h)
+    void khCutsceneEnded();
+    void khCutsceneFailed(std::string error);
     void requestNdsSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestGbaSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestFirmwareSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
@@ -86,7 +90,13 @@ private:
     // into an emulator event so the Kotlin frontend can draw the overlay. The desktop KHMM
     // frontend draws this menu as a Qt widget (PauseMenuOverlay); the composite deliberately
     // hides the game's own pause menu, so without a frontend overlay the menu is invisible.
-    void khFirePauseMenuEvent(bool visible);
+    // cutsceneMenuSelection >= 0 means this is the cutscene skip menu (Continue/Skip over a
+    // playing HD video, selection passed by the trio callbacks); -1 means the game pause menu.
+    void khFirePauseMenuEvent(bool visible, int cutsceneMenuSelection = -1);
+    // [KHMM] tell the frontend to start (playing=true, with file paths) or dismiss the HD
+    // replacement cutscene video player (desktop: windowStartVideo / windowStopVideo)
+    void khFireCutsceneEvent(bool playing, const std::string& videoPath = std::string(),
+                             const std::string& subtitlesPath = std::string());
 
 private:
     int instanceId;

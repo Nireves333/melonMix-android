@@ -19,6 +19,7 @@ import me.magnum.melonds.domain.model.EmulatorConfiguration
 import me.magnum.melonds.domain.model.MicSource
 import me.magnum.melonds.domain.model.emulator.EmulatorEvent
 import me.magnum.melonds.domain.model.emulator.FirmwareLaunchResult
+import me.magnum.melonds.domain.model.emulator.KhCutsceneState
 import me.magnum.melonds.domain.model.emulator.KhPauseMenuState
 import me.magnum.melonds.domain.model.emulator.RomLaunchResult
 import me.magnum.melonds.domain.model.retroachievements.GameAchievementData
@@ -98,6 +99,19 @@ class AndroidEmulatorManager(
             }
             // [KHMM] menu sounds only fire from the HD-cutscene menu, which is not ported yet
             EmulatorEventType.EventKhMenuSound -> { /* no-op */
+            }
+            // [KHMM] HD replacement cutscene start/dismiss
+            EmulatorEventType.EventKhCutscene -> {
+                val playing = data.getInt() != 0
+                val state = if (playing) {
+                    KhCutsceneState(
+                        videoPath = String(ByteArray(data.getInt()).apply { data.get(this) }),
+                        subtitlesPath = String(ByteArray(data.getInt()).apply { data.get(this) }),
+                    )
+                } else {
+                    null
+                }
+                _emulatorEvents.tryEmit(EmulatorEvent.KhCutscene(state))
             }
         }
     }
@@ -247,6 +261,12 @@ class AndroidEmulatorManager(
     }
 
     private fun setupEmulator(emulatorConfiguration: EmulatorConfiguration) {
+        // [KHMM] KH Melon Mix asset packs (HD cutscene videos) live in the app-specific
+        // external files dir under "assets/<game>/..." — native code reads it directly
+        // (no storage permission needed); the plugin appends "assets" itself
+        context.getExternalFilesDir(null)?.let {
+            MelonEmulator.setKhAssetsRoot(it.absolutePath)
+        }
         MelonEmulator.setupEmulator(
             emulatorConfiguration = emulatorConfiguration,
             dsiCameraSource = cameraManager,

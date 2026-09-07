@@ -96,4 +96,13 @@ enum class EmulatorEventType(val event: Int) {
      * * sound ID (`i32`): 1=enter, 2=move, 3=continue, 4=select
      */
     EventKhMenuSound(301),
+
+    /**
+     * [KHMM] KH HD replacement cutscene: start or dismiss the video player. Data (strings
+     * are `i32` length + UTF-8 bytes):
+     * * playing (`i32`)
+     * * video file path (`str`, only when playing != 0)
+     * * subtitles file path (`str`, only when playing != 0; may be empty/nonexistent)
+     */
+    EventKhCutscene(302),
 }

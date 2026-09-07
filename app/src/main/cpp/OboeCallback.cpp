@@ -7,6 +7,9 @@ using namespace melonDS;
 
 #define INTERNAL_FRAME_RATE 59.8260982880808f
 
+// [KHMM] see OboeCallback.h
+std::atomic_bool OboeCallback::khMuteDsAudio { false };
+
 OboeCallback::OboeCallback(int volume, void (*onErrorCallback)(void), std::ostream* recordingStream) : _volume(volume), onErrorCallback(onErrorCallback), _recordingStream(recordingStream) {
     audioSampleFrac = 0;
 }
@@ -51,6 +54,10 @@ OboeCallback::onAudioReady(oboe::AudioStream *stream, void *audioData, int32_t n
         for (int i = num_in; i < len_in; i++)
             ((u32*)audioData)[i] = ((u32*)audioData)[last];
     }
+
+    // [KHMM] mute during HD replacement cutscenes (after the ring drain above)
+    if (khMuteDsAudio.load(std::memory_order_relaxed)) [[unlikely]]
+        memset(audioData, 0, len * sizeof(s16) * 2);
 
     if (_recordingStream) [[unlikely]]
         _recordingStream->write((char*) audioData, numFrames * sizeof(s16) * 2);

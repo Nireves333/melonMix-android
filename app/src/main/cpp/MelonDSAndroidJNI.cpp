@@ -562,6 +562,33 @@ Java_me_magnum_melonds_MelonEmulator_isEnhancedGameCode(JNIEnv* env, jobject thi
     return MelonDSAndroid::isEnhancedGameCode((u32) gameCode);
 }
 
+// [KHMM] root folder for the KH Melon Mix asset packs (HD cutscenes, later BGM/textures).
+// The plugin resolves it via the MELON_MIX_ASSETS env var (Plugin.cpp:75) and appends
+// "assets/<game>" itself, so this is the directory CONTAINING the "assets" folder — the
+// app-specific external files dir (native file access without storage permissions).
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhAssetsRoot(JNIEnv* env, jobject thiz, jstring path)
+{
+    const char* pathString = env->GetStringUTFChars(path, JNI_FALSE);
+    setenv("MELON_MIX_ASSETS", pathString, 1);
+    env->ReleaseStringUTFChars(path, pathString);
+}
+
+// [KHMM] HD replacement cutscene video player returns (desktop: stopVideo/cancelVideo)
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_onKhCutsceneEnded(JNIEnv* env, jobject thiz)
+{
+    MelonDSAndroid::khCutsceneEnded();
+}
+
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_onKhCutsceneFailed(JNIEnv* env, jobject thiz, jstring error)
+{
+    const char* errorString = env->GetStringUTFChars(error, JNI_FALSE);
+    MelonDSAndroid::khCutsceneFailed(errorString);
+    env->ReleaseStringUTFChars(error, errorString);
+}
+
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_updateEmulatorConfiguration(JNIEnv* env, jobject thiz, jobject emulatorConfiguration)
 {
@@ -660,6 +687,17 @@ void* emulate(void*)
 
         pthread_mutex_unlock(&emuThreadMutex);
 
+        // [KHMM] the DS prerendered cutscene finished before the HD replacement video did —
+        // park the emulator until the video ends (desktop: emuStatus_Paused set by
+        // pauseEmulatorAfterIngamePrerenderedCutsceneEndedBeforeReplacementCutscene)
+        if (MelonDSAndroid::khEmuHoldForCutscene.load(std::memory_order_relaxed)) {
+            timespec holdTime = { .tv_sec = 0, .tv_nsec = 8000000 }; // 8ms
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &holdTime, nullptr);
+            frameLimitError = 0;
+            lastTick = getCurrentMillis();
+            continue;
+        }
+
         auto frameStart = std::chrono::steady_clock::now();
 
         u32 nLines = MelonDSAndroid::loop();
@@ -676,7 +714,9 @@ void* emulate(void*)
         if (frameTimeStep < 1)
             frameTimeStep = 1;
 
-        if (limitFps)
+        // [KHMM] bypass the limiter while the hidden DS cutscene fast-forwards behind the
+        // HD replacement video (desktop: targetFPS = 1000 in startReplacementCutscene)
+        if (limitFps && !MelonDSAndroid::khCutsceneFastForward.load(std::memory_order_relaxed))
         {
             frameLimitError += frameTimeStep - delay;
             if (frameLimitError < -frameTimeStep)
