@@ -46,9 +46,11 @@ import me.magnum.melonds.domain.model.FpsCounterPosition
 import me.magnum.melonds.domain.model.RomInfo
 import me.magnum.melonds.domain.model.RuntimeBackground
 import me.magnum.melonds.domain.model.SaveStateSlot
+import me.magnum.melonds.domain.model.VideoRenderer
 import me.magnum.melonds.domain.model.emulator.EmulatorEvent
 import me.magnum.melonds.domain.model.emulator.EmulatorSessionUpdateAction
 import me.magnum.melonds.domain.model.emulator.FirmwareLaunchResult
+import me.magnum.melonds.domain.model.emulator.KhPauseMenuState
 import me.magnum.melonds.domain.model.emulator.RomLaunchResult
 import me.magnum.melonds.domain.model.layout.BackgroundMode
 import me.magnum.melonds.domain.model.layout.Insets
@@ -148,6 +150,11 @@ class EmulatorViewModel @Inject constructor(
 
     private val _currentFps = MutableStateFlow<Int?>(null)
     val currentFps = _currentFps.asStateFlow()
+
+    // [KHMM] KH pause-menu overlay state. The composite hides the game's native pause menu;
+    // the emulator mirrors its content/cursor and we draw the replacement in Compose.
+    private val _khPauseMenu = MutableStateFlow<KhPauseMenuState?>(null)
+    val khPauseMenu = _khPauseMenu.asStateFlow()
 
     private val _toastEvent = EventSharedFlow<ToastEvent>()
     val toastEvent = _toastEvent.asSharedFlow()
@@ -667,8 +674,11 @@ class EmulatorViewModel @Inject constructor(
                         ((gameCode[2].code and 0xFF) shl 16) or
                         ((gameCode[3].code and 0xFF) shl 24)
             )
-            settingsRepository.isEnhancedGraphicsEnabled().collect {
-                uiLayoutProvider.setKhTopScreenOnly(it && isEnhancedGame)
+            // [KHMM] the composite (and therefore the single-screen layout) is OpenGL-only
+            combine(settingsRepository.isEnhancedGraphicsEnabled(), settingsRepository.getVideoRenderer()) { enabled, renderer ->
+                enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL
+            }.collect {
+                uiLayoutProvider.setKhTopScreenOnly(it)
             }
         }
     }
@@ -679,12 +689,15 @@ class EmulatorViewModel @Inject constructor(
                 when (it) {
                     is EmulatorEvent.RumbleStart -> _rumbleEvent.tryEmit(RumbleEvent.RumbleStart(it.duration))
                     EmulatorEvent.RumbleStop -> _rumbleEvent.tryEmit(RumbleEvent.RumbleStop)
+                    // [KHMM] pause-menu overlay snapshot; null when hidden
+                    is EmulatorEvent.KhPauseMenu -> _khPauseMenu.value = it.state.takeIf { state -> state.visible }
                     is EmulatorEvent.Stop -> {
                         when (it.reason) {
                             EmulatorEvent.Stop.Reason.GBAModeNotSupported -> _toastEvent.tryEmit(ToastEvent.GbaModeNotSupported)
                             EmulatorEvent.Stop.Reason.BadExceptionRegion -> _toastEvent.tryEmit(ToastEvent.InternalError)
                             EmulatorEvent.Stop.Reason.PowerOff -> { /* no-op */ }
                         }
+                        _khPauseMenu.value = null // [KHMM]
                         stopEmulatorAndExit()
                     }
                 }

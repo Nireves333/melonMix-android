@@ -74,4 +74,26 @@ enum class EmulatorEventType(val event: Int) {
      * * formated value string (`u8[32]`)
      */
     EventRALeaderboardAttemptCompleted(213),
+
+    /**
+     * [KHMM] KH pause-menu overlay snapshot (the plugin hides the game's native pause menu in
+     * the composite and the frontend draws a replacement). Data (strings are `i32` length +
+     * UTF-8 bytes):
+     * * visible (`i32`)
+     * * selected button index (`i32`)
+     * * darken background (`i32`)
+     * * size modifier * 1000 (`i32`)
+     * * title (`str`)
+     * * subtitle (`str`)
+     * * button label count (`i32`)
+     * * button labels (`str[count]`)
+     */
+    EventKhPauseMenu(300),
+
+    /**
+     * [KHMM] KH menu sound request (only fired by the HD-cutscene menu, which is not ported
+     * yet; the game's own pause menu plays its own sounds). Data:
+     * * sound ID (`i32`): 1=enter, 2=move, 3=continue, 4=select
+     */
+    EventKhMenuSound(301),
 }

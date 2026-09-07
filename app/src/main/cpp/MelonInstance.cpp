@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <fstream>
 #include <string>
+#include <algorithm> // [KHMM] std::min in khFirePauseMenuEvent
+#include <vector>    // [KHMM] event payload packing
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <filesystem>
@@ -24,6 +26,8 @@
 #include "SDCardArgsBuilder.h"
 #include "MelonLog.h" // [KHMM-DBG] perf instrumentation logging
 #include "KhPerfDetail.h" // [KHMM-DBG] emu fine-split buckets
+#include "AndroidMelonEventMessenger.h" // [KHMM] EVENT_KH_* pause-menu overlay events
+#include "EmulatorMessageQueueJNI.h"    // [KHMM] fireEmulatorEvent
 
 using namespace std;
 using namespace melonDS;
@@ -350,7 +354,13 @@ u32 MelonInstance::runFrame()
     // frontend must then present top-screen-only at this same aspect for the single-screen
     // look. TODO(Step C inc.2): source khAspectRatio from the real on-screen top-screen
     // viewport over JNI instead of hardcoding 16:9.
-    if (khEnhancedGraphics && khDbgFovWiden && plugin != nullptr && plugin->isReady())
+    // [KHMM] Enhanced graphics is OpenGL-only BY DESIGN: the composite lives in the GL
+    // compositor, and running the plugin driver under the software renderer crashed in-game
+    // (bug #3). The two KH games this port targets are always played on OpenGL; under any
+    // other renderer the plugin stays loaded but inert (stock DS rendering).
+    bool khPluginActive = khEnhancedGraphics && currentRenderer == Renderer::OpenGl;
+
+    if (khPluginActive && khDbgFovWiden && plugin != nullptr && plugin->isReady())
     {
         plugin->setAspectRatio(khAspectRatio.load(std::memory_order_relaxed)); // [KHMM-DBG] gated by khDbgFovWiden
     }
@@ -422,7 +432,7 @@ u32 MelonInstance::runFrame()
     // Without them the scene stays undetected and the shape lists stay empty, so the
     // composite renders nothing useful (blank/garbled). The compositor runs *inside*
     // RunFrame here (GPU::Blit), so both must run just before it. Both are CPU-only.
-    if (khEnhancedGraphics && plugin != nullptr && plugin->isReady())
+    if (khPluginActive && plugin != nullptr && plugin->isReady())
     {
         // [KHMM-DBG] time the two CPU-side plugin stages separately
         auto t0 = std::chrono::steady_clock::now();
@@ -432,6 +442,27 @@ u32 MelonInstance::runFrame()
         auto t2 = std::chrono::steady_clock::now();
         khStatRefreshNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
         khStatBuildNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
+
+        // [KHMM] Per-frame plugin input hook (desktop: EmuThread.cpp:326). This is what
+        // mirrors the game's pause-menu cursor into the overlay (Plugin.cpp:401 tracks
+        // up/down/A/B; the input passes through, the game runs its own menu natively) and
+        // blocks all input during unskippable cutscenes. Runs on a COPY of inputMask so the
+        // raw user input survives the gate toggling; hotkeys/touch are desktop concepts we
+        // don't feed yet (Days/ReCoded ignore the touch pointers in this hook).
+        u32 khFilteredInput = inputMask;
+        u32 khHotkeyMask = 0, khHotkeyPress = 0;
+        u16 khDummyTouchX = 0, khDummyTouchY = 0;
+        bool khDummyTouching = false;
+        plugin->applyHotkeyToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
+                                                      &khDummyTouching, &khHotkeyMask, &khHotkeyPress);
+        nds->SetKeyMask(khFilteredInput);
+
+        // [KHMM] menu sound requests (1=enter, 2=move, 3=continue, 4=select), played by the
+        // frontend (desktop: EmuThread.cpp:1017)
+        if (int khMenuSound = plugin->CutsceneMenuSoundToPlay()) {
+            int32_t soundId = khMenuSound;
+            fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_MENU_SOUND, sizeof(soundId), &soundId);
+        }
     }
 
     // [KHMM] apply the runtime enhanced-graphics gates. The polygon-rewrite hook and the
@@ -439,7 +470,7 @@ u32 MelonInstance::runFrame()
     // toggles), so switching the setting mid-session cleanly falls back to stock rendering.
     if (plugin != nullptr)
     {
-        plugin->debugSetApplyPolygonChanges(khDbgPolyHook && khEnhancedGraphics);
+        plugin->debugSetApplyPolygonChanges(khDbgPolyHook && khPluginActive);
     }
 
     // [KHMM] apply the 2D frame-cache toggle (the 2D renderer is always the software renderer)
@@ -447,7 +478,7 @@ u32 MelonInstance::runFrame()
 
     if (currentRenderer == Renderer::OpenGl)
     {
-        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khDbgCompositeFS && khEnhancedGraphics);
+        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khDbgCompositeFS && khPluginActive);
     }
 
     // [KHMM-DBG] RunFrame carries the emulation + 3D render (incl. the polygon hook) + the
@@ -820,6 +851,13 @@ void MelonInstance::updateConfiguration(std::shared_ptr<EmulatorConfiguration> n
 
     khEnhancedGraphics = newConfiguration->enhancedGraphics; // [KHMM] user setting (runtime-gated)
 
+    // [KHMM] enhanced graphics off (or a non-OpenGL renderer) = stock DS rendering, where
+    // the game's native pause menu is visible again — retract the overlay if it is up (the
+    // plugin driver stops running so it would never fire the hide itself)
+    if ((!khEnhancedGraphics || newConfiguration->renderer != Renderer::OpenGl) && khPauseMenuShown && plugin != nullptr) {
+        khFirePauseMenuEvent(false);
+    }
+
     currentConfiguration = newConfiguration;
     isRenderConfigurationDirty = true;
 }
@@ -973,7 +1011,60 @@ void MelonInstance::loadPlugin(u32 gameCode)
     // The software 2D renderer keeps its own plugin pointer.
     static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D()).setPlugin(plugin);
 
+    // [KHMM] Pause-menu overlay callbacks. KHMM hides the game's native pause menu inside
+    // the composite (renderer_topScreen_2DShapes: "hidden because we got the new one on
+    // overlay") and draws a replacement menu in the FRONTEND (desktop: PauseMenuOverlay Qt
+    // widget, wired in EmuThread.cpp:243-280). Without these the menu exists (the plugin's
+    // input mirror at Plugin.cpp:401 still runs) but nothing draws it. Every callback fires
+    // a full snapshot event; the Kotlin side rebuilds the overlay from it each time.
+    // The cutscene trio is invoked UNGUARDED in Plugin.cpp, so it must be set even though
+    // it can only fire once HD replacement cutscenes are ported (they are forced off above);
+    // the game-pause snapshot getters are correct for both menus in that state.
+    plugin->showGamePauseMenuOverlay = [this]() { khFirePauseMenuEvent(true); };
+    plugin->hideGamePauseMenuOverlay = [this]() { khFirePauseMenuEvent(false); };
+    plugin->updateGamePauseMenuOverlaySelection = [this](int) { khFirePauseMenuEvent(true); };
+    plugin->refreshGamePauseMenuOverlayContent = [this]() { khFirePauseMenuEvent(true); };
+    plugin->showCutscenePauseMenuOverlay = [this](int) { khFirePauseMenuEvent(true); };
+    plugin->updateCutscenePauseMenuOverlaySelection = [this](int) { khFirePauseMenuEvent(true); };
+    plugin->hideCutscenePauseMenuOverlay = [this]() { khFirePauseMenuEvent(false); };
+
     delete oldPlugin;
+}
+
+// [KHMM] Pack the pause-menu overlay snapshot and fire it at the frontend. Runs on the emu
+// thread (all callbacks fire from refreshGameScene / the input hook). Layout must match
+// AndroidMelonEventMessenger.h / EmulatorEventType.kt (native byte order, length-prefixed
+// UTF-8 strings). Total size must stay under the Kotlin queue's data buffer (512 bytes).
+void MelonInstance::khFirePauseMenuEvent(bool visible)
+{
+    khPauseMenuShown = visible;
+    auto appendI32 = [](std::vector<u8>& v, int32_t value) {
+        const u8* p = reinterpret_cast<const u8*>(&value);
+        v.insert(v.end(), p, p + sizeof(value));
+    };
+    auto appendStr = [&appendI32](std::vector<u8>& v, const std::string& s) {
+        // Cap defensively; menu strings are short ("Continue", "Überspringen", ...)
+        int32_t length = (int32_t) std::min(s.size(), (size_t) 64);
+        appendI32(v, length);
+        v.insert(v.end(), s.begin(), s.begin() + length);
+    };
+
+    std::vector<u8> payload;
+    payload.reserve(256);
+    appendI32(payload, visible ? 1 : 0);
+    appendI32(payload, plugin->GamePauseMenuSelection());
+    appendI32(payload, plugin->gamePauseMenuDarkensBackground() ? 1 : 0);
+    appendI32(payload, (int32_t) (plugin->getHudScale() / 8.0f * 1000.0f)); // desktop: setSizeModifier(getHudScale()/8.0)
+    appendStr(payload, plugin->pauseMenuTitle());
+    appendStr(payload, plugin->gamePauseMenuSubtitle());
+    auto labels = plugin->gamePauseMenuButtonLabels();
+    int32_t labelCount = (int32_t) std::min(labels.size(), (size_t) 4);
+    appendI32(payload, labelCount);
+    for (int32_t i = 0; i < labelCount; i++) {
+        appendStr(payload, labels[i]);
+    }
+
+    fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_PAUSE_MENU, (int) payload.size(), payload.data());
 }
 
 void MelonInstance::updateRenderer()

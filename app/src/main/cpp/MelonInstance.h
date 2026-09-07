@@ -82,6 +82,11 @@ private:
     void setDateTime();
     void saveRewindState(RewindSaveState* rewindSaveState);
     void loadPlugin(u32 gameCode); // [KHMM] (re)create the KH plugin for the loaded game
+    // [KHMM] pack the plugin's pause-menu overlay state (title/subtitle/labels/selection)
+    // into an emulator event so the Kotlin frontend can draw the overlay. The desktop KHMM
+    // frontend draws this menu as a Qt widget (PauseMenuOverlay); the composite deliberately
+    // hides the game's own pause menu, so without a frontend overlay the menu is invisible.
+    void khFirePauseMenuEvent(bool visible);
     void khPollDebugControls(); // [KHMM-DBG] read runtime perf toggles from the debug control file
     void khReportPerf();        // [KHMM-DBG] log the per-stage timing window and reset accumulators
 
@@ -98,6 +103,9 @@ private:
     // The HD texture-replacement path stays forced off in loadPlugin (separate feature chunk).
     Plugins::Plugin* plugin = nullptr;
     bool khEnhancedGraphics = true;
+    // [KHMM] whether the frontend pause-menu overlay is currently shown (last snapshot sent);
+    // used to retract it when enhanced graphics is toggled off mid-menu
+    bool khPauseMenuShown = false;
     // [KHMM] target display aspect ratio pushed into the plugin each frame (single-screen
     // presentation). Set from the real on-screen top-screen viewport by the frontend
     // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read

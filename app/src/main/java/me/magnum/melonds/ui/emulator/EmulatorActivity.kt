@@ -22,6 +22,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
@@ -101,6 +102,7 @@ import me.magnum.melonds.ui.emulator.rewind.model.RewindWindow
 import me.magnum.melonds.ui.emulator.rom.SaveStateAdapter
 import me.magnum.melonds.ui.emulator.ui.AchievementListDialog
 import me.magnum.melonds.ui.emulator.ui.AchievementUpdatesUi
+import me.magnum.melonds.ui.emulator.ui.KhPauseMenuUi
 import me.magnum.melonds.ui.emulator.ui.PendingSubmissionsDialog
 import me.magnum.melonds.ui.emulator.ui.RewindWindowUi
 import me.magnum.melonds.ui.layouteditor.model.LayoutTarget
@@ -362,6 +364,11 @@ class EmulatorActivity : AppCompatActivity() {
                 }
 
                 AchievementUpdatesUi(viewModel)
+
+                // [KHMM] KH pause-menu overlay (the composite hides the game's native pause
+                // menu; the plugin mirrors its state and this draws the replacement)
+                val khPauseMenuState = viewModel.khPauseMenu.collectAsState()
+                KhPauseMenuUi(khPauseMenuState.value)
 
                 RewindWindowUi(
                     state = rewindWindowState.value,

@@ -6,6 +6,16 @@
 class AndroidMelonEventMessenger : public MelonDSAndroid::MelonEventMessenger
 {
 public:
+    // [KHMM] KH Melon Mix pause-menu overlay events (fired from MelonInstance, not through
+    // the messenger interface). Values must stay in sync with EmulatorEventType.kt.
+    //
+    // EVENT_KH_PAUSE_MENU payload (native byte order, strings are i32 length + UTF-8 bytes):
+    //   i32 visible, i32 selection, i32 darkenBackground, i32 sizeModifier*1000,
+    //   str title, str subtitle, i32 labelCount, str labels[labelCount]
+    // EVENT_KH_MENU_SOUND payload: i32 soundId (1=enter, 2=move, 3=continue, 4=select)
+    static constexpr int EVENT_KH_PAUSE_MENU = 300;
+    static constexpr int EVENT_KH_MENU_SOUND = 301;
+
     void onRumbleStart(int durationMs) override;
     void onRumbleStop() override;
     void onEmulatorStop(melonDS::Platform::StopReason reason) override;

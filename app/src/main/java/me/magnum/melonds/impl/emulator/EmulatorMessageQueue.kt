@@ -21,7 +21,7 @@ class EmulatorMessageQueue(private val eventHandler: EventHandler) {
 
     companion object {
         private const val EVENT_SIZE_BYTES = 8 // 2 ints (type, data length)
-        private const val DATA_SIZE_BYTES = 128 // 128 bytes of arbitrary data
+        private const val DATA_SIZE_BYTES = 512 // 512 bytes of arbitrary data ([KHMM] pause-menu snapshots carry localized strings)
 
         /**
          * Initialize the native message pipe and returns the file descriptor through which the messages will be sent.

@@ -19,6 +19,7 @@ import me.magnum.melonds.domain.model.EmulatorConfiguration
 import me.magnum.melonds.domain.model.MicSource
 import me.magnum.melonds.domain.model.emulator.EmulatorEvent
 import me.magnum.melonds.domain.model.emulator.FirmwareLaunchResult
+import me.magnum.melonds.domain.model.emulator.KhPauseMenuState
 import me.magnum.melonds.domain.model.emulator.RomLaunchResult
 import me.magnum.melonds.domain.model.retroachievements.GameAchievementData
 import me.magnum.melonds.domain.model.retroachievements.RAEvent
@@ -80,6 +81,23 @@ class AndroidEmulatorManager(
                     formattedValue = String(ByteArray(data.getInt()).apply { data.get(this) }),
                 )
                 achievementsSharedFlow.tryEmit(event)
+            }
+            // [KHMM] KH pause-menu overlay snapshot (layout defined in AndroidMelonEventMessenger.h)
+            EmulatorEventType.EventKhPauseMenu -> {
+                fun readString() = String(ByteArray(data.getInt()).apply { data.get(this) })
+                val state = KhPauseMenuState(
+                    visible = data.getInt() != 0,
+                    selection = data.getInt(),
+                    darkenBackground = data.getInt() != 0,
+                    sizeModifier = data.getInt() / 1000f,
+                    title = readString(),
+                    subtitle = readString(),
+                    buttonLabels = List(data.getInt()) { readString() },
+                )
+                _emulatorEvents.tryEmit(EmulatorEvent.KhPauseMenu(state))
+            }
+            // [KHMM] menu sounds only fire from the HD-cutscene menu, which is not ported yet
+            EmulatorEventType.EventKhMenuSound -> { /* no-op */
             }
         }
     }

@@ -46,6 +46,9 @@ class VideoPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTit
 
         openGlRendererPreferences.apply {
             add(findPreference("video_internal_resolution")!!)
+            // [KHMM] the enhanced-graphics composite is OpenGL-only by design (the two KH
+            // games are meant to be played on OpenGL; the plugin is inert on other renderers)
+            add(findPreference("enable_enhanced_graphics")!!)
         }
 
         computeRendererPreferences.apply {
