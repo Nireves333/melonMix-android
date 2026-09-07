@@ -438,6 +438,9 @@ u32 MelonInstance::runFrame()
         plugin->debugSetApplyPolygonChanges(khDbgPolyHook);
     }
 
+    // [KHMM] apply the 2D frame-cache toggle (the 2D renderer is always the software renderer)
+    static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D()).Kh2DSkipEnabled = khDbg2DSkip;
+
     // [KHMM-DBG] apply the runtime composite-FS gate (GL renderer only) so the plugin's
     // full-screen composite shader can be swapped for the stock nearest FS live.
     if (currentRenderer == Renderer::OpenGl)
@@ -467,6 +470,33 @@ u32 MelonInstance::runFrame()
     else
     {
         // Do nothing. Emulator already renders into the texture, which was set-up above
+    }
+
+    // [KHMM-DBG] 2D-static probe: hash each engine's finished software-2D framebuffer and count
+    // frames identical to TWO frames ago (the buffers double-buffer, so a static scene reuses the
+    // same physical buffer every other frame). High counts = a per-unit 2D frame cache could skip
+    // DrawScanline/DrawSprites for that engine (~2.2ms each), the biggest optimizable emu slice.
+    // Probe cost ~0.2-0.4ms (hashes ~1.2MB/frame) — remove with the rest of [KHMM-DBG].
+    if (isRendererAccelerated)
+    {
+        int fb = nds->GPU.FrontBuffer;
+        for (int u = 0; u < 2; u++)
+        {
+            const uint64_t* buf = reinterpret_cast<const uint64_t*>(nds->GPU.Framebuffer[fb][u].get());
+            if (buf == nullptr)
+                continue;
+            // FNV-1a over the whole (256*3+1)*192 u32 accelerated-mode buffer, as u64 words
+            size_t words = ((256 * 3 + 1) * 192) / 2;
+            uint64_t h = 1469598103934665603ull;
+            for (size_t i = 0; i < words; i++)
+            {
+                h ^= buf[i];
+                h *= 1099511628211ull;
+            }
+            if (h == khStat2dPrevHash[u][fb])
+                khStat2dStatic[u]++;
+            khStat2dPrevHash[u][fb] = h;
+        }
     }
 
     bool isSleeping = nds->CPUStop & CPUStop_Sleep;
@@ -546,6 +576,7 @@ void MelonInstance::khPollDebugControls()
     bool newFov = khDbgFovWiden;
     bool newHook = khDbgPolyHook;
     bool newFs = khDbgCompositeFS;
+    bool new2DSkip = khDbg2DSkip;
 
     std::string line;
     while (std::getline(file, line))
@@ -564,18 +595,20 @@ void MelonInstance::khPollDebugControls()
         else if (key == "fov") newFov = on;
         else if (key == "hook") newHook = on;
         else if (key == "fs") newFs = on;
+        else if (key == "2dskip") new2DSkip = on;
     }
 
     if (newEnhanced != khEnhancedGraphics || newFov != khDbgFovWiden ||
-        newHook != khDbgPolyHook || newFs != khDbgCompositeFS)
+        newHook != khDbgPolyHook || newFs != khDbgCompositeFS || new2DSkip != khDbg2DSkip)
     {
         khEnhancedGraphics = newEnhanced;
         khDbgFovWiden = newFov;
         khDbgPolyHook = newHook;
         khDbgCompositeFS = newFs;
-        LOG_INFO(kDbgTag, "controls updated: enhanced=%d fov=%d hook=%d fs=%d",
+        khDbg2DSkip = new2DSkip;
+        LOG_INFO(kDbgTag, "controls updated: enhanced=%d fov=%d hook=%d fs=%d 2dskip=%d",
                  khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0,
-                 khDbgPolyHook ? 1 : 0, khDbgCompositeFS ? 1 : 0);
+                 khDbgPolyHook ? 1 : 0, khDbgCompositeFS ? 1 : 0, khDbg2DSkip ? 1 : 0);
     }
 }
 
@@ -648,11 +681,24 @@ void MelonInstance::khReportPerf()
     // this window; over = frames whose body blew the 16.9ms budget.
     double maxFrameMs = khStatMaxFrameNs / 1.0e6;
 
+    // [KHMM] 2D frame cache effectiveness: unit-frames actually skipped this window, plus
+    // [KHMM-DBG] why-not-static counts (g=gate m=midframe-reg-write h=hash v=vram)
+    auto& soft2D = static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D());
+    uint32_t skip2dA = soft2D.Kh2DTakeSkipped(0);
+    uint32_t skip2dB = soft2D.Kh2DTakeSkipped(1);
+    uint32_t whyA[4], whyB[4];
+    soft2D.Kh2DTakeBlockReasons(0, whyA);
+    soft2D.Kh2DTakeBlockReasons(1, whyB);
+
     LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | emu: cpu=%.2f 2d=%.2f 3dg=%.2f spu=%.2f | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | emu: cpu=%.2f 2d=%.2f 3dg=%.2f spu=%.2f | 2dstatic: a=%d b=%d | 2dskip: a=%u b=%u (a:g%um%uh%uv%u b:g%um%uh%uv%u) | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
              fps, frameMs, maxFrameMs, khStatOverFrames, runMs, emuMs, glRenderMs, refreshMs, buildMs,
              emuCpuMs, emuDetailMs[melonDS::KH_EMU_2D], emuDetailMs[melonDS::KH_EMU_3DGEO],
              emuDetailMs[melonDS::KH_EMU_SPU],
+             khStat2dStatic[0], khStat2dStatic[1],
+             skip2dA, skip2dB,
+             whyA[0], whyA[1], whyA[2], whyA[3],
+             whyB[0], whyB[1], whyB[2], whyB[3],
              glScale,
              glDetailMs[melonDS::KH_GL_UBO], glDetailMs[melonDS::KH_GL_VRAMTEX],
              glDetailMs[melonDS::KH_GL_PAL], glDetailMs[melonDS::KH_GL_POLY],
@@ -669,6 +715,8 @@ void MelonInstance::khReportPerf()
     khStatFrames = 0;
     khStatMaxFrameNs = 0;
     khStatOverFrames = 0;
+    khStat2dStatic[0] = 0;
+    khStat2dStatic[1] = 0;
 }
 
 void MelonInstance::stop()
