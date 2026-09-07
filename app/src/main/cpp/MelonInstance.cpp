@@ -23,6 +23,7 @@
 #include "Platform.h"
 #include "SDCardArgsBuilder.h"
 #include "MelonLog.h" // [KHMM-DBG] perf instrumentation logging
+#include "KhPerfDetail.h" // [KHMM-DBG] emu fine-split buckets
 
 using namespace std;
 using namespace melonDS;
@@ -608,6 +609,18 @@ void MelonInstance::khReportPerf()
     double glRenderMs = (glNanos / 1.0e6) / frames;
     double emuMs = runMs - glRenderMs;
 
+    // [KHMM-DBG] fine split of emu (see KhEmuDetail in KhPerfDetail.h); cpu = the untimed
+    // remainder ~= ARM9/ARM7 CPU (JIT) + DMA + scheduler + IO. Tells us which emu component
+    // grows in heavy scenes (and whether optimization can reach it at all).
+    double emuDetailMs[melonDS::KH_EMU_DETAIL_COUNT];
+    double emuDetailSum = 0.0;
+    for (int i = 0; i < melonDS::KH_EMU_DETAIL_COUNT; i++)
+    {
+        emuDetailMs[i] = (melonDS::g_khEmuDetailNanos[i].exchange(0, std::memory_order_relaxed) / 1.0e6) / frames;
+        emuDetailSum += emuDetailMs[i];
+    }
+    double emuCpuMs = emuMs - emuDetailSum;
+
     // [KHMM-DBG] fine split of glrender (see KhGlDetail in GPU_OpenGL.h); residual = untimed
     // sections (clear pass, state setup). Locates the cost inside the GL frame.
     double glDetailMs[melonDS::KH_GL_DETAIL_COUNT];
@@ -636,8 +649,10 @@ void MelonInstance::khReportPerf()
     double maxFrameMs = khStatMaxFrameNs / 1.0e6;
 
     LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             "fps=%.1f frame=%.1fms max=%.1fms over=%d | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | emu: cpu=%.2f 2d=%.2f 3dg=%.2f spu=%.2f | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
              fps, frameMs, maxFrameMs, khStatOverFrames, runMs, emuMs, glRenderMs, refreshMs, buildMs,
+             emuCpuMs, emuDetailMs[melonDS::KH_EMU_2D], emuDetailMs[melonDS::KH_EMU_3DGEO],
+             emuDetailMs[melonDS::KH_EMU_SPU],
              glScale,
              glDetailMs[melonDS::KH_GL_UBO], glDetailMs[melonDS::KH_GL_VRAMTEX],
              glDetailMs[melonDS::KH_GL_PAL], glDetailMs[melonDS::KH_GL_POLY],
