@@ -975,6 +975,29 @@ void MelonInstance::khCutsceneFailed(std::string error)
         plugin->resumeIngamePrerenderedCutsceneAfterReplacementCutsceneFailedToPlay(std::move(error));
 }
 
+// [KHMM] See the header. Mirrors the input-hook invocation in runFrame, minus SetKeyMask
+// (the DS is not stepping while parked; the filtered mask has nowhere to go). This keeps
+// the skip menu fully alive in the parked state: navigation, Continue (hide + resume video)
+// and Skip (the hook's _SkipDsCutscene consumption takes the "DS already ended" branch at
+// Plugin.cpp:422 and stops the video immediately).
+void MelonInstance::khCutsceneHoldTick()
+{
+    if (plugin == nullptr || !plugin->isReady())
+        return;
+
+    u32 khFilteredInput = inputMask;
+    u32 khHotkeyMask = 0, khHotkeyPress = 0;
+    u16 khDummyTouchX = 0, khDummyTouchY = 0;
+    bool khDummyTouching = false;
+    plugin->applyHotkeyToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
+                                                  &khDummyTouching, &khHotkeyMask, &khHotkeyPress);
+
+    if (int khMenuSound = plugin->CutsceneMenuSoundToPlay()) {
+        int32_t soundId = khMenuSound;
+        fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_MENU_SOUND, sizeof(soundId), &soundId);
+    }
+}
+
 void MelonInstance::updateRenderer()
 {
     Renderer newRenderer = currentConfiguration->renderer;

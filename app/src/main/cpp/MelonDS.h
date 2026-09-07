@@ -60,6 +60,8 @@ namespace MelonDSAndroid {
     // stopVideo/cancelVideo): natural end of the video, and playback failure.
     extern void khCutsceneEnded();
     extern void khCutsceneFailed(std::string error);
+    // [KHMM] cutscene-menu input processing for the parked emu loop (see MelonInstance)
+    extern void khCutsceneHoldTick();
 
     /**
      * Loads the NDS ROM and, optionally, the GBA ROM.

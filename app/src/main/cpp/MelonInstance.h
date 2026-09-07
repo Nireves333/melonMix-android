@@ -64,6 +64,12 @@ public:
     // desktop where the Qt GUI thread calls straight into the plugin; see MelonDS.h)
     void khCutsceneEnded();
     void khCutsceneFailed(std::string error);
+    // [KHMM] runs the plugin's cutscene-menu input processing while the emu loop is parked
+    // waiting for the HD video to finish (khEmuHoldForCutscene) — without this the
+    // Continue/Skip menu goes dead as soon as the hidden DS cutscene ends, because the
+    // input hook normally only runs inside runFrame. Called from the emulate() hold branch
+    // (same emu thread as runFrame, so no new concurrency).
+    void khCutsceneHoldTick();
     void requestNdsSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestGbaSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestFirmwareSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);

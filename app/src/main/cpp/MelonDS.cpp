@@ -396,6 +396,12 @@ namespace MelonDSAndroid
             instance->khCutsceneFailed(std::move(error));
     }
 
+    void khCutsceneHoldTick()
+    {
+        if (instance)
+            instance->khCutsceneHoldTick();
+    }
+
     void stop()
     {
         instance->stop();

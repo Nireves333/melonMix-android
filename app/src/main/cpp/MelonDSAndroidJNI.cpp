@@ -688,8 +688,11 @@ void* emulate(void*)
 
         // [KHMM] the DS prerendered cutscene finished before the HD replacement video did —
         // park the emulator until the video ends (desktop: emuStatus_Paused set by
-        // pauseEmulatorAfterIngamePrerenderedCutsceneEndedBeforeReplacementCutscene)
+        // pauseEmulatorAfterIngamePrerenderedCutsceneEndedBeforeReplacementCutscene).
+        // The plugin's cutscene-menu input processing must keep ticking while parked, or
+        // the Skip/Continue menu goes dead the moment the DS side finishes.
         if (MelonDSAndroid::khEmuHoldForCutscene.load(std::memory_order_relaxed)) {
+            MelonDSAndroid::khCutsceneHoldTick();
             timespec holdTime = { .tv_sec = 0, .tv_nsec = 8000000 }; // 8ms
             clock_nanosleep(CLOCK_MONOTONIC, 0, &holdTime, nullptr);
             frameLimitError = 0;
