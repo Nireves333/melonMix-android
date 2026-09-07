@@ -33,6 +33,7 @@ import me.magnum.melonds.domain.services.EmulatorManager
 import me.magnum.melonds.impl.camera.DSiCameraSourceMultiplexer
 import me.magnum.melonds.ui.emulator.rewind.model.RewindSaveState
 import me.magnum.melonds.ui.emulator.rewind.model.RewindWindow
+import java.io.File
 
 class AndroidEmulatorManager(
     private val context: Context,
@@ -262,10 +263,12 @@ class AndroidEmulatorManager(
 
     private fun setupEmulator(emulatorConfiguration: EmulatorConfiguration) {
         // [KHMM] KH Melon Mix asset packs (HD cutscene videos) live in the app-specific
-        // external files dir under "assets/<game>/..." — native code reads it directly
-        // (no storage permission needed); the plugin appends "assets" itself
+        // external files dir under "assets/<game>/..." — native code reads it directly (no
+        // storage permission needed). MELON_MIX_ASSETS must point AT the assets folder: the
+        // plugin appends only "<game>" to it (the "assets" segment is appended in the
+        // non-env fallback branch only).
         context.getExternalFilesDir(null)?.let {
-            MelonEmulator.setKhAssetsRoot(it.absolutePath)
+            MelonEmulator.setKhAssetsRoot(File(it, "assets").absolutePath)
         }
         MelonEmulator.setupEmulator(
             emulatorConfiguration = emulatorConfiguration,

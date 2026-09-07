@@ -562,10 +562,9 @@ Java_me_magnum_melonds_MelonEmulator_isEnhancedGameCode(JNIEnv* env, jobject thi
     return MelonDSAndroid::isEnhancedGameCode((u32) gameCode);
 }
 
-// [KHMM] root folder for the KH Melon Mix asset packs (HD cutscenes, later BGM/textures).
-// The plugin resolves it via the MELON_MIX_ASSETS env var (Plugin.cpp:75) and appends
-// "assets/<game>" itself, so this is the directory CONTAINING the "assets" folder — the
-// app-specific external files dir (native file access without storage permissions).
+// [KHMM] the KH Melon Mix "assets" folder (HD cutscenes, later BGM/textures). The plugin
+// resolves it via the MELON_MIX_ASSETS env var (Plugin.cpp:75) and appends only "<game>",
+// so this must point AT the assets folder itself (e.g. <externalFilesDir>/assets).
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_setKhAssetsRoot(JNIEnv* env, jobject thiz, jstring path)
 {

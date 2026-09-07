@@ -440,6 +440,18 @@ u32 MelonInstance::runFrame()
         }
     }
 
+    // [KHMM-DBG] log every cutscene-detection transition with the path the plugin resolves
+    // for it — "path=" empty means refreshCutscene will silently ignore the cutscene
+    if (khPluginActive && plugin != nullptr && plugin->isReady()) {
+        Plugins::CutsceneEntry* khDet = plugin->detectCutscene();
+        if (khDet != khDbgLastCutscene) {
+            LOG_INFO("MelonMixKh", "[DBG] detectCutscene -> %s (path=%s)",
+                     khDet ? khDet->Name : "(none)",
+                     khDet ? plugin->replacementCutsceneFilePath(khDet).c_str() : "");
+            khDbgLastCutscene = khDet;
+        }
+    }
+
     // [KHMM] While an HD replacement video plays, the hidden DS prerendered cutscene races
     // to its end with the frame limiter bypassed (desktop: pluginShouldFastForward,
     // EmuThread.cpp:555/896-899). Recomputed every frame so it can never stay latched.
@@ -866,6 +878,25 @@ void MelonInstance::loadPlugin(u32 gameCode)
     plugin->postMessageToOsd = [](std::string message) {
         LOG_WARN("MelonMixKh", "%s", message.c_str());
     };
+
+    // [KHMM-DBG] cutscene-path probe: does the plugin resolve the assets root (MELON_MIX_ASSETS)
+    // and can this process actually see/read the pushed videos? KH games only (PluginDefault
+    // must not create stray asset folders).
+    if (Plugins::PluginManager::isSupported(gameCode)) {
+        auto khAssets = plugin->gameAssetsFolderPath();
+        auto khProbe = khAssets / "cutscenes" / "cinematics" / "hd802.mp4";
+        bool khProbeExists = std::filesystem::exists(khProbe);
+        bool khProbeReadable = false;
+        if (khProbeExists) {
+            if (FILE* f = fopen(khProbe.string().c_str(), "rb")) {
+                khProbeReadable = true;
+                fclose(f);
+            }
+        }
+        LOG_INFO("MelonMixKh", "[DBG] env=%s assetsRoot=%s hd802 exists=%d readable=%d",
+                 std::getenv("MELON_MIX_ASSETS") ? std::getenv("MELON_MIX_ASSETS") : "(null)",
+                 khAssets.string().c_str(), khProbeExists, khProbeReadable);
+    }
 
     delete oldPlugin;
 }
