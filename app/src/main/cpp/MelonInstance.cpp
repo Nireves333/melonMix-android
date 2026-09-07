@@ -598,6 +598,17 @@ void MelonInstance::khReportPerf()
     double glRenderMs = (glNanos / 1.0e6) / frames;
     double emuMs = runMs - glRenderMs;
 
+    // [KHMM-DBG] fine split of glrender (see KhGlDetail in GPU_OpenGL.h); residual = untimed
+    // sections (clear pass, state setup). Locates the cost inside the GL frame.
+    double glDetailMs[melonDS::KH_GL_DETAIL_COUNT];
+    double glDetailSum = 0.0;
+    for (int i = 0; i < melonDS::KH_GL_DETAIL_COUNT; i++)
+    {
+        glDetailMs[i] = (g_khGlDetailNanos[i].exchange(0, std::memory_order_relaxed) / 1.0e6) / frames;
+        glDetailSum += glDetailMs[i];
+    }
+    int glScale = g_khGlScale.load(std::memory_order_relaxed);
+
     const char* rend = currentRenderer == Renderer::OpenGl ? "GL"
                      : currentRenderer == Renderer::Compute ? "CS" : "SW";
 
@@ -611,8 +622,14 @@ void MelonInstance::khReportPerf()
     double avgBuf = aReads > 0 ? (double) aBufAccum / aReads : 0.0;
 
     LOG_INFO(kDbgTag,
-             "fps=%.1f frame=%.1fms | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
-             fps, frameMs, runMs, emuMs, glRenderMs, refreshMs, buildMs, polysPerFrame, shapeCount,
+             "fps=%.1f frame=%.1fms | runframe=%.2fms (emu=%.2f glrender=%.2f) refresh=%.2f build=%.2f | gl@%dx: ubo=%.2f vram=%.2f pal=%.2f poly=%.2f draw=%.2f comp=%.2f resid=%.2f | polys/f=%.0f shapes=%u | aud: reads=%u empty=%u partial=%u buf=%.0f | enh=%d fov=%d hook=%d fs=%d rend=%s",
+             fps, frameMs, runMs, emuMs, glRenderMs, refreshMs, buildMs,
+             glScale,
+             glDetailMs[melonDS::KH_GL_UBO], glDetailMs[melonDS::KH_GL_VRAMTEX],
+             glDetailMs[melonDS::KH_GL_PAL], glDetailMs[melonDS::KH_GL_POLY],
+             glDetailMs[melonDS::KH_GL_DRAW], glDetailMs[melonDS::KH_GL_COMP],
+             glRenderMs - glDetailSum,
+             polysPerFrame, shapeCount,
              aReads, aEmpty, aPartial, avgBuf,
              khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0, khDbgPolyHook ? 1 : 0,
              khDbgCompositeFS ? 1 : 0, rend);
