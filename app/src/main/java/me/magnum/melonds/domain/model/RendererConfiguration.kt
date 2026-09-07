@@ -8,6 +8,8 @@ data class RendererConfiguration(
     val threadedRendering: Boolean,
     val renderStrategy: RenderStrategy,
     private val internalResolutionScaling: Int,
+    // [KHMM] KH Melon Mix single-screen enhanced-graphics master toggle (read over JNI)
+    val enhancedGraphics: Boolean,
 ) {
 
     val resolutionScaling get() = when (renderer) {

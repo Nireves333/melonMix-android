@@ -96,14 +96,16 @@ class SharedPreferencesSettingsRepository(
         setDefaultThemeIfRequired()
         setDefaultMacAddressIfRequired()
 
+        // [KHMM] 6 sources exceed the typed combine overloads, so nest two typed combines
         renderConfigurationFlow = combine(
-            getVideoRenderer(),
-            getVideoFiltering(),
-            isThreadedRenderingEnabled(),
-            getRenderStrategy(),
-            getVideoInternalResolutionScaling(),
-        ) { renderer, filtering, threadedRenderingEnabled, renderStrategy, resolutionScaling ->
-            RendererConfiguration(renderer, filtering, threadedRenderingEnabled, renderStrategy, resolutionScaling)
+            combine(getVideoRenderer(), getVideoFiltering(), isThreadedRenderingEnabled()) { renderer, filtering, threaded ->
+                Triple(renderer, filtering, threaded)
+            },
+            combine(getRenderStrategy(), getVideoInternalResolutionScaling(), isEnhancedGraphicsEnabled()) { strategy, scaling, enhanced ->
+                Triple(strategy, scaling, enhanced)
+            },
+        ) { (renderer, filtering, threaded), (strategy, scaling, enhanced) ->
+            RendererConfiguration(renderer, filtering, threaded, strategy, scaling, enhanced)
         }.conflate().shareIn(preferencesCoroutineScope, SharingStarted.Lazily, replay = 1)
     }
 
@@ -310,6 +312,13 @@ class SharedPreferencesSettingsRepository(
     override fun isThreadedRenderingEnabled(): Flow<Boolean> {
         return getOrCreatePreferenceSharedFlow("enable_threaded_rendering") {
             preferences.getBoolean("enable_threaded_rendering", true)
+        }
+    }
+
+    // [KHMM] master toggle for the KH Melon Mix single-screen enhanced-graphics path
+    override fun isEnhancedGraphicsEnabled(): Flow<Boolean> {
+        return getOrCreatePreferenceSharedFlow("enable_enhanced_graphics") {
+            preferences.getBoolean("enable_enhanced_graphics", true)
         }
     }
 

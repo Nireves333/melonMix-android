@@ -137,5 +137,11 @@ object MelonEmulator {
 
     external fun updateEmulatorConfiguration(emulatorConfiguration: EmulatorConfiguration)
 
+    // [KHMM] real aspect ratio of the on-screen top-screen viewport (single-screen composite)
+    external fun setDisplayAspectRatio(aspectRatio: Float)
+
+    // [KHMM] true if the KH Melon Mix plugin supports this gamecode (little-endian packed)
+    external fun isEnhancedGameCode(gameCode: Int): Boolean
+
     external fun updateMotionData(ax: Float, ay: Float, az: Float, rx: Float, ry: Float, rz: Float)
 }

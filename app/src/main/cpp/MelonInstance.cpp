@@ -54,6 +54,8 @@ MelonInstance::MelonInstance(int instanceId, std::shared_ptr<EmulatorConfigurati
     inputMask = 0xFFF;
     frame = 0;
 
+    khEnhancedGraphics = configuration->enhancedGraphics; // [KHMM] user setting
+
     net->RegisterInstance(instanceId);
 
     if (consoleType == 1)
@@ -350,7 +352,7 @@ u32 MelonInstance::runFrame()
     // viewport over JNI instead of hardcoding 16:9.
     if (khEnhancedGraphics && khDbgFovWiden && plugin != nullptr && plugin->isReady())
     {
-        plugin->setAspectRatio(khAspectRatio); // [KHMM-DBG] gated by khDbgFovWiden
+        plugin->setAspectRatio(khAspectRatio.load(std::memory_order_relaxed)); // [KHMM-DBG] gated by khDbgFovWiden
     }
 
     int screenWidth;
@@ -432,20 +434,20 @@ u32 MelonInstance::runFrame()
         khStatBuildNs += std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
     }
 
-    // [KHMM-DBG] apply the runtime hook gate so the per-polygon rewrite can be A/B'd live
+    // [KHMM] apply the runtime enhanced-graphics gates. The polygon-rewrite hook and the
+    // composite FS follow the user's enhanced-graphics setting (AND the [KHMM-DBG] A/B
+    // toggles), so switching the setting mid-session cleanly falls back to stock rendering.
     if (plugin != nullptr)
     {
-        plugin->debugSetApplyPolygonChanges(khDbgPolyHook);
+        plugin->debugSetApplyPolygonChanges(khDbgPolyHook && khEnhancedGraphics);
     }
 
     // [KHMM] apply the 2D frame-cache toggle (the 2D renderer is always the software renderer)
     static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D()).Kh2DSkipEnabled = khDbg2DSkip;
 
-    // [KHMM-DBG] apply the runtime composite-FS gate (GL renderer only) so the plugin's
-    // full-screen composite shader can be swapped for the stock nearest FS live.
     if (currentRenderer == Renderer::OpenGl)
     {
-        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khDbgCompositeFS);
+        static_cast<GLRenderer &>(nds->GPU.GetRenderer3D()).SetCompositeFSEnabled(khDbgCompositeFS && khEnhancedGraphics);
     }
 
     // [KHMM-DBG] RunFrame carries the emulation + 3D render (incl. the polygon hook) + the
@@ -545,7 +547,8 @@ void MelonInstance::khPollDebugControls()
         return s.substr(a, b - a + 1);
     };
 
-    bool newEnhanced = khEnhancedGraphics;
+    // NOTE: the old "enhanced" key is intentionally ignored — enhanced graphics is now a real
+    // in-app setting (enable_enhanced_graphics) and the debug file must not fight it.
     bool newFov = khDbgFovWiden;
     bool newHook = khDbgPolyHook;
     bool newFs = khDbgCompositeFS;
@@ -564,23 +567,21 @@ void MelonInstance::khPollDebugControls()
         std::string key = trim(line.substr(0, eq));
         std::string val = trim(line.substr(eq + 1));
         bool on = (val == "1" || val == "true" || val == "on" || val == "yes");
-        if (key == "enhanced") newEnhanced = on;
-        else if (key == "fov") newFov = on;
+        if (key == "fov") newFov = on;
         else if (key == "hook") newHook = on;
         else if (key == "fs") newFs = on;
         else if (key == "2dskip") new2DSkip = on;
     }
 
-    if (newEnhanced != khEnhancedGraphics || newFov != khDbgFovWiden ||
-        newHook != khDbgPolyHook || newFs != khDbgCompositeFS || new2DSkip != khDbg2DSkip)
+    if (newFov != khDbgFovWiden || newHook != khDbgPolyHook ||
+        newFs != khDbgCompositeFS || new2DSkip != khDbg2DSkip)
     {
-        khEnhancedGraphics = newEnhanced;
         khDbgFovWiden = newFov;
         khDbgPolyHook = newHook;
         khDbgCompositeFS = newFs;
         khDbg2DSkip = new2DSkip;
-        LOG_INFO(kDbgTag, "controls updated: enhanced=%d fov=%d hook=%d fs=%d 2dskip=%d",
-                 khEnhancedGraphics ? 1 : 0, khDbgFovWiden ? 1 : 0,
+        LOG_INFO(kDbgTag, "controls updated: fov=%d hook=%d fs=%d 2dskip=%d",
+                 khDbgFovWiden ? 1 : 0,
                  khDbgPolyHook ? 1 : 0, khDbgCompositeFS ? 1 : 0, khDbg2DSkip ? 1 : 0);
     }
 }
@@ -817,6 +818,8 @@ void MelonInstance::updateConfiguration(std::shared_ptr<EmulatorConfiguration> n
 
     rewindManager.UpdateRewindSettings(newConfiguration->rewindEnabled, newConfiguration->rewindLengthSeconds, newConfiguration->rewindCaptureSpacingSeconds);
 
+    khEnhancedGraphics = newConfiguration->enhancedGraphics; // [KHMM] user setting (runtime-gated)
+
     currentConfiguration = newConfiguration;
     isRenderConfigurationDirty = true;
 }
@@ -940,12 +943,12 @@ void MelonInstance::loadPlugin(u32 gameCode)
     Plugins::Plugin* oldPlugin = plugin;
     plugin = Plugins::PluginManager::load(gameCode);
 
-    // Step B: the composite shader is ported to GLES 320es, so the enhanced-graphics /
-    // single-screen composite path is enabled (khEnhancedGraphics defaults true). When
-    // enabled, DisableEnhancedGraphics / DisableSingleScreenMode resolve to "not
-    // disabled" so the plugin runs its single-screen compositor. All other config keys
-    // resolve to safe defaults.
-    bool enhanced = khEnhancedGraphics;
+    // Load the plugin with enhanced graphics ALWAYS enabled so the composite fragment
+    // shader is available to the GL compositor regardless of the user's current setting —
+    // the setting (khEnhancedGraphics) gates the per-frame driver, composite FS, and
+    // polygon hook at runtime instead, which lets the user toggle it mid-session in both
+    // directions without reloading the ROM. All other config keys resolve to safe defaults.
+    bool enhanced = true;
     plugin->loadConfigs(
         [enhanced](std::string path) -> bool {
             if (!enhanced &&

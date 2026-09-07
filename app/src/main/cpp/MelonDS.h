@@ -42,6 +42,10 @@ namespace MelonDSAndroid {
     extern std::string getRichPresenceStatus();
     extern std::vector<RetroAchievements::RARuntimeAchievement> getRuntimeAchievements();
     extern void updateEmulatorConfiguration(std::unique_ptr<EmulatorConfiguration> emulatorConfiguration);
+    // [KHMM] real on-screen top-screen viewport aspect (single-screen composite); safe pre-boot
+    extern void setDisplayAspectRatio(float aspectRatio);
+    // [KHMM] does the KH Melon Mix plugin system support this gamecode? (static query, no instance)
+    extern bool isEnhancedGameCode(u32 gameCode);
 
     /**
      * Loads the NDS ROM and, optionally, the GBA ROM.

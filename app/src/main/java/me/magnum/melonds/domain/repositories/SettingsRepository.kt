@@ -38,6 +38,7 @@ interface SettingsRepository {
     fun getVideoInternalResolutionScaling(): Flow<Int>
     fun getVideoFiltering(): Flow<VideoFiltering>
     fun isThreadedRenderingEnabled(): Flow<Boolean>
+    fun isEnhancedGraphicsEnabled(): Flow<Boolean> // [KHMM]
     fun getRenderStrategy(): Flow<RenderStrategy>
     fun getFpsCounterPosition(): FpsCounterPosition
     fun getDSiCameraSource(): DSiCameraSourceType

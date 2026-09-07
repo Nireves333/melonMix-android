@@ -28,6 +28,14 @@
             app:iconSpaceReserved="false"
             android:defaultValue="true" />
 
+    <!-- [KHMM] master toggle for the KH Melon Mix single-screen enhanced-graphics path -->
+    <SwitchPreference
+            android:key="enable_enhanced_graphics"
+            android:title="@string/enhanced_graphics"
+            android:summary="@string/enhanced_graphics_summary"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true" />
+
     <ListPreference
             android:key="video_filtering"
             android:title="@string/filter"

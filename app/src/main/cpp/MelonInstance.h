@@ -58,6 +58,8 @@ public:
     Frame* getPresentationFrame(std::optional<std::chrono::time_point<std::chrono::steady_clock>> deadline);
 
     void updateConfiguration(std::shared_ptr<EmulatorConfiguration> newConfiguration);
+    // [KHMM] real aspect ratio of the on-screen top-screen viewport (UI thread -> emu thread)
+    void setDisplayAspectRatio(float aspectRatio) { khAspectRatio.store(aspectRatio, std::memory_order_relaxed); }
     void requestNdsSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestGbaSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestFirmwareSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
@@ -90,15 +92,17 @@ private:
     std::shared_ptr<Net> net;
 
     // [KHMM] active game plugin. Never null after construction (PluginDefault fallback).
-    // Step B: the composite shader is now ported to GLES 320es, so enhanced graphics
-    // (single-screen compositing) is enabled by default. A user-facing toggle
-    // (config -> JNI -> Kotlin) is a follow-up; the HD texture-replacement path stays
-    // forced off in loadPlugin as its own separate feature chunk.
+    // khEnhancedGraphics comes from the user's "enable_enhanced_graphics" setting (applied in
+    // the constructor and in updateConfiguration); it gates the per-frame plugin driver, the
+    // composite FS, and the polygon hook at runtime, so toggling mid-session works both ways.
+    // The HD texture-replacement path stays forced off in loadPlugin (separate feature chunk).
     Plugins::Plugin* plugin = nullptr;
     bool khEnhancedGraphics = true;
     // [KHMM] target display aspect ratio pushed into the plugin each frame (single-screen
-    // presentation). 16:9 for now; Step C inc.2 sources this from the on-screen viewport.
-    float khAspectRatio = 16.0f / 9.0f;
+    // presentation). Set from the real on-screen top-screen viewport by the frontend
+    // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read
+    // on the emu thread -> atomic.
+    std::atomic<float> khAspectRatio { 16.0f / 9.0f };
 
     // [KHMM-DBG] runtime perf instrumentation (temporary; grep [KHMM-DBG] to remove).
     // Isolates the single-screen composite's cost so we can decide if the feature set is

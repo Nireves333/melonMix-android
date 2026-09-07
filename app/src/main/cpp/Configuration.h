@@ -84,6 +84,7 @@ typedef struct
     SdCardSettings dsiSdCardSettings;
     SdCardSettings dldiSdCardSettings;
     Renderer renderer;
+    bool enhancedGraphics; // [KHMM] KH Melon Mix single-screen enhanced-graphics toggle
 } EmulatorConfiguration;
 
 }

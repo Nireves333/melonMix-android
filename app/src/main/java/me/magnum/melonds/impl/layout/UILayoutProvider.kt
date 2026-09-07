@@ -8,8 +8,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import me.magnum.melonds.domain.model.Point
 import me.magnum.melonds.domain.model.Rect
 import me.magnum.melonds.domain.model.layout.Insets
+import me.magnum.melonds.domain.model.layout.LayoutComponent
 import me.magnum.melonds.domain.model.layout.LayoutConfiguration
 import me.magnum.melonds.domain.model.layout.LayoutDisplayPair
+import me.magnum.melonds.domain.model.layout.PositionedLayoutComponent
 import me.magnum.melonds.domain.model.layout.ScreenFold
 import me.magnum.melonds.domain.model.layout.ScreenLayout
 import me.magnum.melonds.domain.model.layout.UILayout
@@ -36,12 +38,46 @@ class UILayoutProvider(private val defaultLayoutProvider: DefaultLayoutProvider)
 
     private val _currentLayoutConfiguration = MutableStateFlow<LayoutConfiguration?>(null)
 
-    val currentLayout = combine(_currentLayoutConfiguration, currentLayoutVariant) { layoutConfiguration, variant ->
+    // [KHMM] when the enhanced-graphics plugin composites the whole game into the DS top
+    // screen (single-screen mode), the frontend must present the top screen only, stretched
+    // to the display. This flag overrides whatever layout would otherwise be used, without
+    // touching the user's saved layouts.
+    private val khTopScreenOnly = MutableStateFlow(false)
+
+    val currentLayout = combine(_currentLayoutConfiguration, currentLayoutVariant, khTopScreenOnly) { layoutConfiguration, variant, topScreenOnly ->
         if (layoutConfiguration == null || variant == null) {
             null
         } else {
-            variant to getOptimalLayoutForVariant(layoutConfiguration, variant)
+            val layout = getOptimalLayoutForVariant(layoutConfiguration, variant)
+            variant to if (topScreenOnly) buildKhTopScreenOnlyLayout(layout, variant) else layout
         }
+    }
+
+    fun setKhTopScreenOnly(enabled: Boolean) { // [KHMM]
+        khTopScreenOnly.value = enabled
+    }
+
+    // [KHMM] Replace the screen components of the layout that would otherwise be shown with a
+    // single TOP_SCREEN covering the whole UI (landscape: stretched full-screen; portrait: a
+    // full-width 16:9 box, vertically centered). Buttons and other components are kept as the
+    // user/default layout placed them. The on-screen rect's real aspect ratio is pushed to the
+    // plugin separately, so stretching does not distort the composite.
+    private fun buildKhTopScreenOnlyLayout(baseLayout: UILayout, variant: UILayoutVariant): UILayout {
+        val uiWidth = variant.uiSize.x
+        val uiHeight = variant.uiSize.y
+        val screenRect = if (uiHeight > uiWidth) {
+            val boxHeight = (uiWidth * 9f / 16f).toInt()
+            Rect(0, (uiHeight - boxHeight) / 2, uiWidth, boxHeight)
+        } else {
+            Rect(0, 0, uiWidth, uiHeight)
+        }
+
+        val components = baseLayout.mainScreenLayout.components.orEmpty()
+            .filterNot { it.isScreen() }
+            .toMutableList()
+            .apply { add(0, PositionedLayoutComponent(screenRect, LayoutComponent.TOP_SCREEN)) }
+
+        return baseLayout.copy(mainScreenLayout = baseLayout.mainScreenLayout.copy(components = components))
     }
 
     fun updateCurrentOrientation(orientation: Orientation) {

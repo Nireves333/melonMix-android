@@ -548,6 +548,20 @@ Java_me_magnum_melonds_MelonEmulator_setMicrophoneEnabled(JNIEnv* env, jobject t
         MelonDSAndroid::userDisableMic();
 }
 
+// [KHMM] real on-screen top-screen viewport aspect for the single-screen composite
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setDisplayAspectRatio(JNIEnv* env, jobject thiz, jfloat aspectRatio)
+{
+    MelonDSAndroid::setDisplayAspectRatio(aspectRatio);
+}
+
+// [KHMM] static gamecode query — true if the KH Melon Mix plugin system supports this game
+JNIEXPORT jboolean JNICALL
+Java_me_magnum_melonds_MelonEmulator_isEnhancedGameCode(JNIEnv* env, jobject thiz, jint gameCode)
+{
+    return MelonDSAndroid::isEnhancedGameCode((u32) gameCode);
+}
+
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_updateEmulatorConfiguration(JNIEnv* env, jobject thiz, jobject emulatorConfiguration)
 {

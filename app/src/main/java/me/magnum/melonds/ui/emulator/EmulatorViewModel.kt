@@ -249,6 +249,7 @@ class EmulatorViewModel @Inject constructor(
         startObservingEmulatorEvents()
         startObservingAchievementEvents()
         startObservingLayoutForRom(rom)
+        startObservingKhSingleScreenLayout(rom)
         startRetroAchievementsSession(rom)
 
         val cheats = getRomInfo(rom)?.let { getRomEnabledCheats(it) } ?: emptyList()
@@ -650,6 +651,26 @@ class EmulatorViewModel @Inject constructor(
         _mainScreenBackground.value = RuntimeBackground.None
         _secondaryScreenBackground.value = RuntimeBackground.None
         _layout.value = null
+        uiLayoutProvider.setKhTopScreenOnly(false) // [KHMM]
+    }
+
+    // [KHMM] Drive the automatic single-screen (top-screen-only) layout: active only while the
+    // enhanced-graphics setting is on AND the loaded ROM is a game the KH Melon Mix plugin
+    // supports (the gamecode list lives in the native PluginManager). Reacts to the setting
+    // changing mid-session; reset by resetEmulatorState on session end/restart.
+    private fun startObservingKhSingleScreenLayout(rom: Rom) {
+        sessionCoroutineScope.launch {
+            val gameCode = getRomInfo(rom)?.gameCode
+            val isEnhancedGame = gameCode?.length == 4 && MelonEmulator.isEnhancedGameCode(
+                (gameCode[0].code and 0xFF) or
+                        ((gameCode[1].code and 0xFF) shl 8) or
+                        ((gameCode[2].code and 0xFF) shl 16) or
+                        ((gameCode[3].code and 0xFF) shl 24)
+            )
+            settingsRepository.isEnhancedGraphicsEnabled().collect {
+                uiLayoutProvider.setKhTopScreenOnly(it && isEnhancedGame)
+            }
+        }
     }
 
     private fun startObservingEmulatorEvents() {

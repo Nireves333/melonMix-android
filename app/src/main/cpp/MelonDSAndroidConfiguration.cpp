@@ -93,6 +93,8 @@ MelonDSAndroid::EmulatorConfiguration MelonDSAndroidConfiguration::buildEmulator
     finalEmulatorConfiguration.dsiSdCardSettings = MelonDSAndroid::SdCardSettings { .enabled = false };
     finalEmulatorConfiguration.dldiSdCardSettings = MelonDSAndroid::SdCardSettings { .enabled = false };
     finalEmulatorConfiguration.renderer = videoRenderer;
+    // [KHMM] enhanced-graphics toggle rides the renderer configuration object
+    finalEmulatorConfiguration.enhancedGraphics = env->GetBooleanField(rendererConfigurationObject, env->GetFieldID(renderConfigurationClass, "enhancedGraphics", "Z"));
     return finalEmulatorConfiguration;
 }
 

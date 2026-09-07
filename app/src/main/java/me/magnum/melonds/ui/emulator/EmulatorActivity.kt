@@ -834,6 +834,15 @@ class EmulatorActivity : AppCompatActivity() {
             bottomView?.onTop ?: false,
         )
 
+        // [KHMM] tell the enhanced-graphics plugin the real aspect ratio of the on-screen
+        // top-screen viewport (its composite is built for exactly this aspect). Pushed on
+        // every layout change; the native side ignores it when the plugin is inactive.
+        topView?.getRect()?.let {
+            if (it.width > 0 && it.height > 0) {
+                MelonEmulator.setDisplayAspectRatio(it.width.toFloat() / it.height)
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val touchScreenArea = bottomView?.getRect()?.let {
                 val rect = android.graphics.Rect(it.x, it.y, it.right, it.bottom)

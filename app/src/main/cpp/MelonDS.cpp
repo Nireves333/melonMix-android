@@ -26,6 +26,8 @@
 #include "retroachievements/RetroAchievementsManager.h"
 #include "net/Net.h"
 #include "net/Net_Slirp.h"
+#include "plugins/PluginManager.h" // [KHMM]
+#include <atomic>
 #include <fstream>
 
 namespace MelonDSAndroid
@@ -39,6 +41,10 @@ namespace MelonDSAndroid
     std::shared_ptr<Net> net;
 
     std::shared_ptr<MelonInstance> instance;
+
+    // [KHMM] latest known display aspect; kept here so a value pushed before the instance
+    // exists (layout settles before boot) is applied when the instance is created.
+    std::atomic<float> pendingDisplayAspectRatio { 16.0f / 9.0f };
 
     bool setupOpenGlContext();
     void cleanupOpenGlContext();
@@ -82,6 +88,10 @@ namespace MelonDSAndroid
 
         setupAudio(currentConfiguration->audioSettings);
         setAudioActiveInstance(instance);
+
+        // [KHMM] apply the aspect ratio the frontend may have pushed before the instance existed
+        if (instance)
+            instance->setDisplayAspectRatio(pendingDisplayAspectRatio.load(std::memory_order_relaxed));
     }
 
     void setCodeList(std::list<Cheat> cheats)
@@ -124,6 +134,16 @@ namespace MelonDSAndroid
         updateAudioSettings(sharedConfig->audioSettings);
 
         currentConfiguration = sharedConfig;
+    }
+
+    void setDisplayAspectRatio(float aspectRatio) {
+        pendingDisplayAspectRatio.store(aspectRatio, std::memory_order_relaxed);
+        if (instance)
+            instance->setDisplayAspectRatio(aspectRatio);
+    }
+
+    bool isEnhancedGameCode(u32 gameCode) {
+        return Plugins::PluginManager::isSupported(gameCode);
     }
 
     int loadRom(std::string romPath, std::string sramPath, RomGbaSlotConfig* gbaSlotConfig)
