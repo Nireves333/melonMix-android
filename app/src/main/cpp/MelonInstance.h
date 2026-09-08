@@ -123,8 +123,6 @@ private:
     // [KHMM] whether the frontend pause-menu overlay is currently shown (last snapshot sent);
     // used to retract it when enhanced graphics is toggled off mid-menu
     bool khPauseMenuShown = false;
-    // [KHMM-DBG] last cutscene-detection result, for transition logging in runFrame
-    Plugins::CutsceneEntry* khDbgLastCutscene = nullptr;
     // [KHMM] target display aspect ratio pushed into the plugin each frame (single-screen
     // presentation). Set from the real on-screen top-screen viewport by the frontend
     // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read
