@@ -98,9 +98,9 @@ class AndroidEmulatorManager(
                 )
                 _emulatorEvents.tryEmit(EmulatorEvent.KhPauseMenu(state))
             }
-            // [KHMM] menu sounds only fire from the HD-cutscene menu, which is not ported yet
-            EmulatorEventType.EventKhMenuSound -> { /* no-op */
-            }
+            // [KHMM] cutscene skip menu sound (the DS audio is muted while the HD video plays,
+            // so the frontend plays these; the game's own native menus play their own SFX)
+            EmulatorEventType.EventKhMenuSound -> _emulatorEvents.tryEmit(EmulatorEvent.KhMenuSound(data.getInt()))
             // [KHMM] HD replacement cutscene start/dismiss
             EmulatorEventType.EventKhCutscene -> {
                 val playing = data.getInt() != 0

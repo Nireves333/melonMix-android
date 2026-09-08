@@ -7,6 +7,8 @@ sealed class EmulatorEvent {
     data class KhPauseMenu(val state: KhPauseMenuState) : EmulatorEvent()
     // [KHMM] KH HD replacement cutscene video player start/dismiss (see KhCutsceneState)
     data class KhCutscene(val state: KhCutsceneState?) : EmulatorEvent()
+    // [KHMM] KH cutscene skip menu sound (1=enter, 2=move, 3=continue, 4=select)
+    data class KhMenuSound(val soundId: Int) : EmulatorEvent()
     data class Stop(val reason: Reason) : EmulatorEvent() {
         enum class Reason {
             GBAModeNotSupported,

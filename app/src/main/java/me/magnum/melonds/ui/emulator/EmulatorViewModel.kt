@@ -162,6 +162,11 @@ class EmulatorViewModel @Inject constructor(
     private val _khCutscene = MutableStateFlow<KhCutsceneState?>(null)
     val khCutscene = _khCutscene.asStateFlow()
 
+    // [KHMM] cutscene skip menu sounds (1=enter, 2=move, 3=continue, 4=select). Small buffer:
+    // sounds can burst faster than the collector resumes (menu ticks every 8ms while parked)
+    private val _khMenuSoundEvent = MutableSharedFlow<Int>(extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val khMenuSoundEvent = _khMenuSoundEvent.asSharedFlow()
+
     private val _toastEvent = EventSharedFlow<ToastEvent>()
     val toastEvent = _toastEvent.asSharedFlow()
 
@@ -706,6 +711,8 @@ class EmulatorViewModel @Inject constructor(
                             _khPauseMenu.value = null
                         }
                     }
+                    // [KHMM] cutscene skip menu SFX
+                    is EmulatorEvent.KhMenuSound -> _khMenuSoundEvent.tryEmit(it.soundId)
                     is EmulatorEvent.Stop -> {
                         when (it.reason) {
                             EmulatorEvent.Stop.Reason.GBAModeNotSupported -> _toastEvent.tryEmit(ToastEvent.GbaModeNotSupported)

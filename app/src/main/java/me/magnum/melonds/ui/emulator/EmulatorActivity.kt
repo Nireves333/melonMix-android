@@ -198,6 +198,9 @@ class EmulatorActivity : AppCompatActivity() {
     private lateinit var mainScreenRenderer: DSRenderer
     private lateinit var melonTouchHandler: MelonTouchHandler
     private lateinit var nativeInputListener: INativeInputListener
+    // [KHMM] cutscene skip menu SFX (created lazily — only KH games ever fire the sound events)
+    private val khMenuSoundPlayerDelegate = lazy { KhMenuSoundPlayer(this) }
+    private val khMenuSoundPlayer by khMenuSoundPlayerDelegate
     private val frontendInputHandler = object : FrontendInputHandler() {
         var fastForwardEnabled = false
             private set
@@ -556,6 +559,14 @@ class EmulatorActivity : AppCompatActivity() {
                         is RumbleEvent.RumbleStart -> emulatorRumbleManager.startRumbling()
                         RumbleEvent.RumbleStop -> emulatorRumbleManager.stopRumbling()
                     }
+                }
+            }
+        }
+        // [KHMM] cutscene skip menu SFX (the DS audio is muted while the HD video plays)
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.khMenuSoundEvent.collect {
+                    khMenuSoundPlayer.play(it)
                 }
             }
         }
@@ -1066,6 +1077,9 @@ class EmulatorActivity : AppCompatActivity() {
         super.onDestroy()
         emulatorMotionManager.stop()
         frameRenderCoordinator.stop()
+        if (khMenuSoundPlayerDelegate.isInitialized()) {
+            khMenuSoundPlayer.release() // [KHMM]
+        }
         presentation?.dismiss()
     }
 }
