@@ -975,6 +975,19 @@ void MelonInstance::khCutsceneFailed(std::string error)
         plugin->resumeIngamePrerenderedCutsceneAfterReplacementCutsceneFailedToPlay(std::move(error));
 }
 
+// [KHMM] A save state was loaded while an HD replacement video is playing. The loaded state
+// has nothing to do with the video anymore, so arm the plugin's skip sequence — the exact
+// path the cutscene menu's Skip button takes. runFrame runs refreshGameScene (which updates
+// the cutscene state machine from the loaded RAM) before the input hook consumes the flag,
+// so the consumption either stops the video immediately (loaded state has no DS cutscene:
+// the "DS already ended" branch) or runs the regular DS-cutscene skip feed first (state was
+// saved mid-cutscene) — both end with the video dismissed and the game at the loaded state.
+void MelonInstance::khStateLoadedDuringCutscene()
+{
+    if (plugin != nullptr && plugin->isReady() && plugin->IsReplacementCutsceneRunning())
+        plugin->skipIngamePrerenderedCutsceneThroughPauseMenu();
+}
+
 // [KHMM] See the header. Mirrors the input-hook invocation in runFrame, minus SetKeyMask
 // (the DS is not stepping while parked; the filtered mask has nowhere to go). This keeps
 // the skip menu fully alive in the parked state: navigation, Continue (hide + resume video)

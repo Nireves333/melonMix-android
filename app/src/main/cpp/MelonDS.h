@@ -60,6 +60,8 @@ namespace MelonDSAndroid {
     // stopVideo/cancelVideo): natural end of the video, and playback failure.
     extern void khCutsceneEnded();
     extern void khCutsceneFailed(std::string error);
+    // [KHMM] a save state was loaded while the video plays — skip the video (see MelonInstance)
+    extern void khStateLoadedDuringCutscene();
     // [KHMM] cutscene-menu input processing for the parked emu loop (see MelonInstance)
     extern void khCutsceneHoldTick();
 

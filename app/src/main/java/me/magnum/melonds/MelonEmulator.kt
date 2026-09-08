@@ -152,5 +152,9 @@ object MelonEmulator {
     external fun onKhCutsceneEnded()
     external fun onKhCutsceneFailed(error: String)
 
+    // [KHMM] a save state was loaded while an HD replacement video plays — arms the plugin's
+    // skip sequence so the video stops instead of playing out over the loaded state
+    external fun onKhStateLoadedDuringCutscene()
+
     external fun updateMotionData(ax: Float, ay: Float, az: Float, rx: Float, ry: Float, rz: Float)
 }

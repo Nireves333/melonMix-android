@@ -588,6 +588,13 @@ Java_me_magnum_melonds_MelonEmulator_onKhCutsceneFailed(JNIEnv* env, jobject thi
     env->ReleaseStringUTFChars(error, errorString);
 }
 
+// [KHMM] a save state was loaded while an HD replacement video plays — skip the video
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_onKhStateLoadedDuringCutscene(JNIEnv* env, jobject thiz)
+{
+    MelonDSAndroid::khStateLoadedDuringCutscene();
+}
+
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_updateEmulatorConfiguration(JNIEnv* env, jobject thiz, jobject emulatorConfiguration)
 {

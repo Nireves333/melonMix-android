@@ -64,6 +64,9 @@ public:
     // desktop where the Qt GUI thread calls straight into the plugin; see MelonDS.h)
     void khCutsceneEnded();
     void khCutsceneFailed(std::string error);
+    // [KHMM] a save state was loaded while an HD replacement video plays — arm the plugin's
+    // skip sequence so the video stops and the game drops straight into the loaded state
+    void khStateLoadedDuringCutscene();
     // [KHMM] runs the plugin's cutscene-menu input processing while the emu loop is parked
     // waiting for the HD video to finish (khEmuHoldForCutscene) — without this the
     // Continue/Skip menu goes dead as soon as the hidden DS cutscene ends, because the

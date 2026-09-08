@@ -514,6 +514,11 @@ class EmulatorViewModel @Inject constructor(
     fun rewindToState(rewindSaveState: RewindSaveState) {
         sessionCoroutineScope.launch {
             emulatorManager.loadRewindState(rewindSaveState)
+            // [KHMM] same as loadRomState: don't let a playing HD cutscene video play out
+            // over the rewound state
+            if (_khCutscene.value != null) {
+                MelonEmulator.onKhStateLoadedDuringCutscene()
+            }
         }
     }
 
@@ -628,6 +633,11 @@ class EmulatorViewModel @Inject constructor(
         val success = emulatorManager.loadState(slotUri)
         if (success) {
             _achievementsEvent.emit(RAEventUi.Reset)
+            // [KHMM] the loaded state has nothing to do with a playing HD cutscene video —
+            // skip the video instead of letting it play out over the loaded state
+            if (_khCutscene.value != null) {
+                MelonEmulator.onKhStateLoadedDuringCutscene()
+            }
         }
 
         return success
