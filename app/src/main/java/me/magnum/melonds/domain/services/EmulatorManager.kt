@@ -2,6 +2,7 @@ package me.magnum.melonds.domain.services
 
 import android.net.Uri
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import me.magnum.melonds.domain.model.Cheat
 import me.magnum.melonds.domain.model.ConsoleType
 import me.magnum.melonds.domain.model.emulator.EmulatorEvent
@@ -16,6 +17,10 @@ import me.magnum.melonds.ui.emulator.rewind.model.RewindWindow
 interface EmulatorManager {
 
     val emulatorEvents: Flow<EmulatorEvent>
+
+    // [KHMM] whether the emulator core is currently paused (pauseEmulator/resumeEmulator).
+    // The HD-cutscene video player follows it so the video never plays over a paused game
+    val emulatorPaused: StateFlow<Boolean>
 
     suspend fun loadRom(rom: Rom, cheats: List<Cheat>): RomLaunchResult
 

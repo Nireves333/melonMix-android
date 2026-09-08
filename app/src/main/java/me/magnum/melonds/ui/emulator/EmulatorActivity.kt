@@ -374,12 +374,14 @@ class EmulatorActivity : AppCompatActivity() {
                 val khPauseMenuState = viewModel.khPauseMenu.collectAsState()
 
                 // [KHMM] HD replacement cutscene video player. Composed BEFORE the pause menu
-                // so the cutscene skip menu draws on top of the video. The skip menu pauses
-                // playback while open (desktop: windowPauseVideo/windowUnpauseVideo).
+                // so the cutscene skip menu draws on top of the video. Playback pauses while
+                // the skip menu is open (desktop: windowPauseVideo/windowUnpauseVideo) and
+                // while the emulator core is paused (app pause menu, save-state wraps).
                 val khCutsceneState = viewModel.khCutscene.collectAsState()
+                val khEmulatorPaused = viewModel.emulatorPaused.collectAsState()
                 KhCutscenePlayerUi(
                     state = khCutsceneState.value,
-                    pausedByMenu = khPauseMenuState.value != null,
+                    paused = khPauseMenuState.value != null || khEmulatorPaused.value,
                     onEnded = { MelonEmulator.onKhCutsceneEnded() },
                     onFailed = { MelonEmulator.onKhCutsceneFailed(it) },
                 )

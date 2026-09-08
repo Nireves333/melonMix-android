@@ -167,6 +167,10 @@ class EmulatorViewModel @Inject constructor(
     private val _khMenuSoundEvent = MutableSharedFlow<Int>(extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val khMenuSoundEvent = _khMenuSoundEvent.asSharedFlow()
 
+    // [KHMM] the HD-cutscene video pauses whenever the emulator core is paused (app pause
+    // menu, save-state wraps, settings) so video and game state can't drift apart
+    val emulatorPaused = emulatorManager.emulatorPaused
+
     private val _toastEvent = EventSharedFlow<ToastEvent>()
     val toastEvent = _toastEvent.asSharedFlow()
 

@@ -6,7 +6,10 @@ import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import me.magnum.melonds.MelonEmulator
@@ -47,6 +50,11 @@ class AndroidEmulatorManager(
 
     private val _emulatorEvents = MutableSharedFlow<EmulatorEvent>(extraBufferCapacity = Int.MAX_VALUE)
     override val emulatorEvents: Flow<EmulatorEvent> = _emulatorEvents.asSharedFlow()
+
+    // [KHMM] tracked at this choke point so every pause path (activity background, pause menu,
+    // save-state wraps, settings) is covered
+    private val _emulatorPaused = MutableStateFlow(false)
+    override val emulatorPaused: StateFlow<Boolean> = _emulatorPaused.asStateFlow()
 
     private val achievementsSharedFlow = MutableSharedFlow<RAEvent>(replay = 0, extraBufferCapacity = Int.MAX_VALUE)
 
@@ -198,10 +206,12 @@ class AndroidEmulatorManager(
 
     override suspend fun pauseEmulator() {
         MelonEmulator.pauseEmulation()
+        _emulatorPaused.value = true // [KHMM]
     }
 
     override suspend fun resumeEmulator() {
         MelonEmulator.resumeEmulation()
+        _emulatorPaused.value = false // [KHMM]
     }
 
     override suspend fun resetEmulator() {
@@ -250,6 +260,7 @@ class AndroidEmulatorManager(
         MelonEmulator.stopEmulation()
         cameraManager.stopCurrentCameraSource()
         messageQueue.stop()
+        _emulatorPaused.value = false // [KHMM]
     }
 
     override fun cleanEmulator() {
