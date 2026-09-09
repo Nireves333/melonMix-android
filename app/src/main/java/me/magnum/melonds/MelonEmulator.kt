@@ -125,6 +125,23 @@ object MelonEmulator {
         onKeyRelease(input.keyCode)
     }
 
+    // [KHMM] KH Melon Mix addon keys (lock-on, switch target, command menu...) — a separate
+    // channel from the DS key mask; the native side maps the action ordinal to the loaded
+    // game's plugin addon-key bit (no-op outside the KH games)
+    fun onKhInputDown(input: Input) {
+        if (input.isKhInput) onKhAddonKey(input.khAddonAction, true)
+    }
+
+    fun onKhInputUp(input: Input) {
+        if (input.isKhInput) onKhAddonKey(input.khAddonAction, false)
+    }
+
+    private external fun onKhAddonKey(action: Int, down: Boolean)
+
+    // [KHMM] KH camera stick axes, x right-positive / y down-positive, each in [-1, 1]
+    // (quantized natively; no-op outside the KH games)
+    external fun setKhCameraAxes(x: Float, y: Float)
+
     private external fun onKeyPress(key: Int)
 
     private external fun onKeyRelease(key: Int)

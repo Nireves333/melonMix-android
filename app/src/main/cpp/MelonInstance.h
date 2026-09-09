@@ -73,6 +73,20 @@ public:
     // input hook normally only runs inside runFrame. Called from the emulate() hold branch
     // (same emu thread as runFrame, so no new concurrency).
     void khCutsceneHoldTick();
+    // [KHMM] refined controls: KH "addon key" press state (lock-on, switch target, command
+    // menu, HUD toggle...). `action` is the app-side KhInput ordinal (see kKhAddonKeyNames
+    // in MelonInstance.cpp — order is the contract with Kotlin's Input enum); translated to
+    // the per-game plugin bit at load time because Days and Re:Coded number their addon
+    // keys differently (bit = index into the plugin's customKeyMappingNames). UI thread.
+    void khSetAddonKey(int action, bool down);
+    // [KHMM] refined controls: camera stick axes, x right-positive / y down-positive
+    // (Android MotionEvent convention), each in [-1, 1]. Quantized here into the plugin's
+    // TouchKeyMask encoding: four inverted 4-bit magnitude nibbles (right/left/down/up at
+    // bits 0/4/8/12, active-low). Clamped to 15 — desktop feeds 0-31 joystick magnitudes
+    // into the 4-bit slots, an upstream overflow bug we don't reproduce. UI thread.
+    void khSetCameraAxes(float x, float y);
+    // [KHMM] number of app-side KH addon actions (kKhAddonKeyNames in MelonInstance.cpp)
+    static constexpr int kKhAddonActionCount = 9;
     void requestNdsSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestGbaSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestFirmwareSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
@@ -106,6 +120,9 @@ private:
     // replacement cutscene video player (desktop: windowStartVideo / windowStopVideo)
     void khFireCutsceneEvent(bool playing, const std::string& videoPath = std::string(),
                              const std::string& subtitlesPath = std::string());
+    // [KHMM] translate the app-side held-action bits (khAddonHeld) into the loaded game's
+    // plugin AddonMask via khAddonBitByAction. Emu thread.
+    u32 khBuildAddonMask();
 
 private:
     int instanceId;
@@ -128,6 +145,17 @@ private:
     // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read
     // on the emu thread -> atomic.
     std::atomic<float> khAspectRatio { 16.0f / 9.0f };
+    // [KHMM] refined controls state. khAddonHeld bits are app-side action ordinals (written
+    // on the UI thread via khSetAddonKey, read on the emu thread each frame); the per-frame
+    // driver translates them through khAddonBitByAction (built in loadPlugin via
+    // customKeyIndexByName, -1 = the loaded game has no such key) into the plugin's
+    // AddonMask, with rising-edge AddonPress computed on the emu thread (desktop:
+    // EmuInstanceInput.cpp:664-667). khTouchKeyMask is the pre-encoded camera mask,
+    // active-low, 0xFFFF = centered.
+    std::atomic<u32> khAddonHeld { 0 };
+    u32 khLastAddonMask = 0; // emu thread only (plugin-bit domain)
+    int khAddonBitByAction[kKhAddonActionCount] = {};
+    std::atomic<u32> khTouchKeyMask { 0xFFFF };
 
     std::atomic<float> motionData[6] = { 0.0f, 0.0f, 9.80665f, 0.0f, 0.0f, 0.0f };
 

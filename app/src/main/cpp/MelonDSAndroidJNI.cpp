@@ -594,6 +594,21 @@ Java_me_magnum_melonds_MelonEmulator_setKhBgmVolume(JNIEnv* env, jobject thiz, j
     KhBgm::setVolumePercent(volumePercent);
 }
 
+// [KHMM] refined controls: KH addon key press state (action = Kotlin KH_* input ordinal,
+// see kKhAddonKeyNames in MelonInstance.cpp) and camera stick axes (x right-positive /
+// y down-positive, [-1, 1]; quantized natively into the plugin's TouchKeyMask nibbles)
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_onKhAddonKey(JNIEnv* env, jobject thiz, jint action, jboolean down)
+{
+    MelonDSAndroid::khSetAddonKey(action, down);
+}
+
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhCameraAxes(JNIEnv* env, jobject thiz, jfloat x, jfloat y)
+{
+    MelonDSAndroid::khSetCameraAxes(x, y);
+}
+
 // [KHMM] current HD-cutscene video position, used to schedule video-synced BGM starts
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_setKhBgmVideoPosition(JNIEnv* env, jobject thiz, jlong positionMs)

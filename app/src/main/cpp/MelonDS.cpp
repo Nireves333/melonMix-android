@@ -414,6 +414,19 @@ namespace MelonDSAndroid
             instance->khCutsceneHoldTick();
     }
 
+    // [KHMM] refined controls (see MelonInstance)
+    void khSetAddonKey(int action, bool down)
+    {
+        if (instance)
+            instance->khSetAddonKey(action, down);
+    }
+
+    void khSetCameraAxes(float x, float y)
+    {
+        if (instance)
+            instance->khSetCameraAxes(x, y);
+    }
+
     void stop()
     {
         instance->stop();

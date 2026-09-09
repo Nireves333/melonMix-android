@@ -256,6 +256,16 @@ private fun getInputName(input: Input): String? {
         Input.QUICK_SAVE -> R.string.input_quick_save
         Input.QUICK_LOAD -> R.string.input_quick_load
         Input.REWIND -> R.string.rewind
+        // [KHMM] KH Melon Mix controls
+        Input.KH_LOCK_ON -> R.string.input_kh_lock_on
+        Input.KH_SWITCH_TARGET_LEFT -> R.string.input_kh_switch_target_left
+        Input.KH_SWITCH_TARGET_RIGHT -> R.string.input_kh_switch_target_right
+        Input.KH_COMMAND_MENU_LEFT -> R.string.input_kh_command_menu_left
+        Input.KH_COMMAND_MENU_RIGHT -> R.string.input_kh_command_menu_right
+        Input.KH_COMMAND_MENU_UP -> R.string.input_kh_command_menu_up
+        Input.KH_COMMAND_MENU_DOWN -> R.string.input_kh_command_menu_down
+        Input.KH_HUD_TOGGLE -> R.string.input_kh_hud_toggle
+        Input.KH_FULLSCREEN_MAP_TOGGLE -> R.string.input_kh_fullscreen_map_toggle
         else -> return null
     }
 

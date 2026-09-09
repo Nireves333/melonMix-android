@@ -368,6 +368,16 @@
     <string name="input_swap_screens">Swap Screens</string>
     <string name="input_quick_save">Quick Save</string>
     <string name="input_quick_load">Quick Load</string>
+    <!-- [KHMM] KH Melon Mix controls (labels mirror desktop's customKeyMappingLabels) -->
+    <string name="input_kh_lock_on">KH: Lock On</string>
+    <string name="input_kh_switch_target_left">KH: Switch Target - Left</string>
+    <string name="input_kh_switch_target_right">KH: Switch Target - Right</string>
+    <string name="input_kh_command_menu_left">KH: Command Menu - Back</string>
+    <string name="input_kh_command_menu_right">KH: Command Menu - Select</string>
+    <string name="input_kh_command_menu_up">KH: Command Menu - Up</string>
+    <string name="input_kh_command_menu_down">KH: Command Menu - Down</string>
+    <string name="input_kh_hud_toggle">KH: HUD Toggle</string>
+    <string name="input_kh_fullscreen_map_toggle">KH: Fullscreen Map Toggle</string>
 
     <string name="layouts">Layouts</string>
     <string name="layouts_summary">Manage custom layout configurations</string>

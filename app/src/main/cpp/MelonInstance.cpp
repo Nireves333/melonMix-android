@@ -40,6 +40,25 @@ namespace MelonDSAndroid
 const int kRewindBufferSize = 1024 * 1024 * 20; // Use 20MB per savestate
 const int kRewindScreenshotSize = 256 * 384 * 4;
 
+// [KHMM] Refined controls. The app-side action ordinals (bits in khAddonHeld) are defined
+// by this table's order — it is the contract with Kotlin's Input enum (KH_* entries).
+// The plugin bit for each action is game-specific (Days and Re:Coded number their addon
+// keys differently), resolved at plugin load via customKeyIndexByName. Actions a game
+// doesn't have (or a non-KH game) resolve to -1 and are dropped.
+static const char* const kKhAddonKeyNames[] = {
+    "HK_LSwitchTarget",       // 0 KH_SWITCH_TARGET_LEFT
+    "HK_RSwitchTarget",       // 1 KH_SWITCH_TARGET_RIGHT
+    "HK_RLockOn",             // 2 KH_LOCK_ON
+    "HK_CommandMenuLeft",     // 3 KH_COMMAND_MENU_LEFT
+    "HK_CommandMenuRight",    // 4 KH_COMMAND_MENU_RIGHT
+    "HK_CommandMenuUp",       // 5 KH_COMMAND_MENU_UP
+    "HK_CommandMenuDown",     // 6 KH_COMMAND_MENU_DOWN
+    "HK_HUDToggle",           // 7 KH_HUD_TOGGLE
+    "HK_FullscreenMapToggle", // 8 KH_FULLSCREEN_MAP_TOGGLE
+};
+static_assert(sizeof(kKhAddonKeyNames) / sizeof(kKhAddonKeyNames[0]) == MelonInstance::kKhAddonActionCount,
+              "addon key name table must match the action count");
+
 MelonInstance::MelonInstance(int instanceId, std::shared_ptr<EmulatorConfiguration> configuration, std::unique_ptr<melonDS::NDSArgs> args, std::shared_ptr<Net> net, std::unique_ptr<ScreenshotRenderer> screenshotRenderer, int consoleType) :
     instanceId(instanceId),
     currentConfiguration(configuration),
@@ -420,18 +439,39 @@ u32 MelonInstance::runFrame()
         plugin->refreshGameScene();
         plugin->buildShapes();
 
-        // [KHMM] Per-frame plugin input hook (desktop: EmuThread.cpp:326). This is what
-        // mirrors the game's pause-menu cursor into the overlay (Plugin.cpp:401 tracks
-        // up/down/A/B; the input passes through, the game runs its own menu natively) and
-        // blocks all input during unskippable cutscenes. Runs on a COPY of inputMask so the
-        // raw user input survives the gate toggling; hotkeys/touch are desktop concepts we
-        // don't feed yet (Days/ReCoded ignore the touch pointers in this hook).
-        u32 khFilteredInput = inputMask;
-        u32 khHotkeyMask = 0, khHotkeyPress = 0;
+        // [KHMM] Per-frame plugin input processing, in desktop order (EmuThread.cpp:324-336):
+        // camera touch-key mask first, then the hotkey hook, then the KH addon keys, then
+        // the filtered mask reaches the DS. Runs on a COPY of inputMask so the raw user
+        // input survives the gate toggling.
+        //
+        // Camera stick: the KH plugins ignore the touch pointers entirely and instead
+        // ARM7-write the decoded axes into a RAM mailbox + inject an ARM code cave (the
+        // shocoman analog hack) — pure core RAM calls, internally gated on a boot counter,
+        // so calling it every frame like desktop is safe.
         u16 khDummyTouchX = 0, khDummyTouchY = 0;
         bool khDummyTouching = false;
+        plugin->applyTouchKeyMaskToTouchControls(&khDummyTouchX, &khDummyTouchY, &khDummyTouching,
+                                                 khTouchKeyMask.load(std::memory_order_relaxed));
+
+        // Hotkey hook: mirrors the game's pause-menu cursor into the overlay (Plugin.cpp:401),
+        // drives the cutscene skip menu, blocks input during unskippable cutscenes. The
+        // hotkey masks stay dummies — KHMM adds no stock hotkeys; the plugins only WRITE
+        // bit 4 (loading-screen fast-forward request), which we don't consume yet.
+        u32 khFilteredInput = inputMask;
+        u32 khHotkeyMask = 0, khHotkeyPress = 0;
         plugin->applyHotkeyToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
                                                       &khDummyTouching, &khHotkeyMask, &khHotkeyPress);
+
+        // KH addon keys (lock-on, switch target, command menu, HUD toggle...): translate the
+        // app-side held-action bits into the per-game plugin AddonMask and compute the
+        // rising edge here on the emu thread (desktop: EmuInstanceInput.cpp:664-667). The
+        // plugin mutates the mask copies (the cutscene menu zeroes them when it consumes
+        // input), so edge state is kept from our built value, not the call results.
+        u32 khAddonMask = khBuildAddonMask();
+        u32 khAddonPress = khAddonMask & ~khLastAddonMask;
+        khLastAddonMask = khAddonMask;
+        plugin->applyAddonKeysToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
+                                                         &khDummyTouching, &khAddonMask, &khAddonPress);
         nds->SetKeyMask(khFilteredInput);
 
         // [KHMM] menu sound requests (1=enter, 2=move, 3=continue, 4=select), played by the
@@ -862,6 +902,14 @@ void MelonInstance::loadPlugin(u32 gameCode)
 
     plugin->setNds(nds);
 
+    // [KHMM] Refined controls: resolve the app-side action ordinals to this game's addon-key
+    // bits. The bit is the index into the plugin's customKeyMappingNames vector and DIFFERS
+    // between Days and Re:Coded (Re:Coded drops Days' first three entries), so bindings are
+    // keyed by name, never by bit. -1 = this game has no such key (or non-KH plugin).
+    for (int i = 0; i < kKhAddonActionCount; i++)
+        khAddonBitByAction[i] = plugin->customKeyIndexByName(kKhAddonKeyNames[i]);
+    khLastAddonMask = 0;
+
     // The software 2D renderer keeps its own plugin pointer.
     static_cast<GPU2D::SoftRenderer&>(nds->GPU.GetRenderer2D()).setPlugin(plugin);
 
@@ -1002,6 +1050,58 @@ void MelonInstance::khStateLoadedDuringCutscene()
         plugin->skipIngamePrerenderedCutsceneThroughPauseMenu();
 }
 
+void MelonInstance::khSetAddonKey(int action, bool down)
+{
+    if (action < 0 || action >= kKhAddonActionCount)
+        return;
+
+    u32 bit = 1u << action;
+    if (down)
+        khAddonHeld.fetch_or(bit, std::memory_order_relaxed);
+    else
+        khAddonHeld.fetch_and(~bit, std::memory_order_relaxed);
+}
+
+u32 MelonInstance::khBuildAddonMask()
+{
+    u32 held = khAddonHeld.load(std::memory_order_relaxed);
+    u32 addonMask = 0;
+    for (int i = 0; i < kKhAddonActionCount; i++)
+    {
+        if ((held & (1u << i)) && khAddonBitByAction[i] >= 0)
+            addonMask |= 1u << khAddonBitByAction[i];
+    }
+    return addonMask;
+}
+
+// [KHMM] Quantize one axis magnitude into a 4-bit nibble (0-15) past a deadzone. 15 is the
+// hard cap: the nibble slots in TouchKeyMask are 4 bits wide (desktop's joystick path feeds
+// 0-31 and bleeds into the neighbouring direction — a known upstream overflow, not ported).
+static u32 khQuantizeCameraAxis(float value)
+{
+    float magnitude = value < 0 ? -value : value;
+    const float deadzone = 0.15f;
+    if (magnitude <= deadzone)
+        return 0;
+
+    float scaled = (magnitude - deadzone) / (1.0f - deadzone);
+    if (scaled > 1.0f)
+        scaled = 1.0f;
+    u32 quantized = (u32) (scaled * 15.0f + 0.5f);
+    return quantized > 15 ? 15 : quantized;
+}
+
+void MelonInstance::khSetCameraAxes(float x, float y)
+{
+    u32 right = x > 0 ? khQuantizeCameraAxis(x) : 0;
+    u32 left  = x < 0 ? khQuantizeCameraAxis(x) : 0;
+    u32 down  = y > 0 ? khQuantizeCameraAxis(y) : 0;
+    u32 up    = y < 0 ? khQuantizeCameraAxis(y) : 0;
+    // Active-low: the plugin decodes direction magnitudes as (~mask >> shift) & 0xF
+    u32 mask = 0xFFFFu & ~(right | (left << 4) | (down << 8) | (up << 12));
+    khTouchKeyMask.store(mask, std::memory_order_relaxed);
+}
+
 // [KHMM] See the header. Mirrors the input-hook invocation in runFrame, minus SetKeyMask
 // (the DS is not stepping while parked; the filtered mask has nowhere to go). This keeps
 // the skip menu fully alive in the parked state: navigation, Continue (hide + resume video)
@@ -1018,6 +1118,15 @@ void MelonInstance::khCutsceneHoldTick()
     bool khDummyTouching = false;
     plugin->applyHotkeyToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
                                                   &khDummyTouching, &khHotkeyMask, &khHotkeyPress);
+
+    // [KHMM] addon keys too: the skip menu is also navigable with the command-menu addon
+    // keys (_superApplyAddonKeysToCutsceneMenu). No touch-key-mask call while parked — the
+    // camera is meaningless under a video and desktop's parked state runs none of this.
+    u32 khAddonMask = khBuildAddonMask();
+    u32 khAddonPress = khAddonMask & ~khLastAddonMask;
+    khLastAddonMask = khAddonMask;
+    plugin->applyAddonKeysToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
+                                                     &khDummyTouching, &khAddonMask, &khAddonPress);
 
     if (int khMenuSound = plugin->CutsceneMenuSoundToPlay()) {
         int32_t soundId = khMenuSound;

@@ -10,13 +10,18 @@ class MelonTouchHandler : IInputListener {
     override fun onKeyPress(key: Input) {
         if (key == Input.HINGE) {
             handleHingePress()
+        } else if (key.isKhInput) {
+            // [KHMM] KH addon keys go to their own native channel, not the DS key mask
+            MelonEmulator.onKhInputDown(key)
         } else {
             MelonEmulator.onInputDown(key)
         }
     }
 
     override fun onKeyReleased(key: Input) {
-        if (key != Input.HINGE) {
+        if (key.isKhInput) {
+            MelonEmulator.onKhInputUp(key)
+        } else if (key != Input.HINGE) {
             MelonEmulator.onInputUp(key)
         }
     }

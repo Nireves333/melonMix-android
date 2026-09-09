@@ -3,6 +3,7 @@ package me.magnum.melonds.ui.emulator.input
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
+import me.magnum.melonds.MelonEmulator
 import me.magnum.melonds.domain.model.ControllerConfiguration
 import me.magnum.melonds.domain.model.InputConfig
 import kotlin.math.absoluteValue
@@ -25,7 +26,10 @@ class InputProcessor(private val controllerConfiguration: ControllerConfiguratio
 
     override fun onKeyEvent(keyEvent: KeyEvent): Boolean {
         val input = controllerConfiguration.keyToInput(keyEvent.keyCode) ?: return false
-        if (input.isSystemInput) {
+        // [KHMM] KH addon inputs need press AND release delivered to the emulator (they are
+        // held-state masks natively), so they ride the system-input path; MelonTouchHandler
+        // dispatches them to their own native channel
+        if (input.isSystemInput || input.isKhInput) {
             when (keyEvent.action) {
                 KeyEvent.ACTION_DOWN -> {
                     systemInputListener.onKeyPress(input)
@@ -53,6 +57,15 @@ class InputProcessor(private val controllerConfiguration: ControllerConfiguratio
 
     override fun onMotionEvent(motionEvent: MotionEvent): Boolean {
         if (motionEvent.isFromSource(InputDevice.SOURCE_CLASS_JOYSTICK)) {
+            // [KHMM] right stick (Z/RZ, the standard Android mapping) drives the KH camera.
+            // Forwarded raw — deadzone and quantization happen natively, and the value is a
+            // no-op outside the KH games. Z/RZ are otherwise unused by the app, so this
+            // doesn't fight any binding.
+            MelonEmulator.setKhCameraAxes(
+                motionEvent.getAxisValue(MotionEvent.AXIS_Z),
+                motionEvent.getAxisValue(MotionEvent.AXIS_RZ),
+            )
+
             val deviceAxis = axisStates.filterKeys { it.deviceId == null || it.deviceId == motionEvent.deviceId }
             deviceAxis.forEach {
                 val axis = it.key
@@ -68,14 +81,14 @@ class InputProcessor(private val controllerConfiguration: ControllerConfiguratio
                     controllerConfiguration.axisToInput(axis.axisCode, axis.direction)?.let { input ->
                         if (axisState.active) {
                             axisState.active = false
-                            if (input.isSystemInput) {
+                            if (input.isSystemInput || input.isKhInput) {
                                 systemInputListener.onKeyReleased(input)
                             } else {
                                 frontendInputListener.onKeyReleased(input)
                             }
                         } else {
                             axisState.active = true
-                            if (input.isSystemInput) {
+                            if (input.isSystemInput || input.isKhInput) {
                                 systemInputListener.onKeyPress(input)
                             } else {
                                 frontendInputListener.onKeyPress(input)

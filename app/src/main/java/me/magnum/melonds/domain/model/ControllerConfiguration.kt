@@ -24,6 +24,16 @@ class ControllerConfiguration(configList: List<InputConfig>) {
             Input.QUICK_SAVE,
             Input.QUICK_LOAD,
             Input.REWIND,
+            // [KHMM] KH Melon Mix controls (only act in the KH games)
+            Input.KH_LOCK_ON,
+            Input.KH_SWITCH_TARGET_LEFT,
+            Input.KH_SWITCH_TARGET_RIGHT,
+            Input.KH_COMMAND_MENU_LEFT,
+            Input.KH_COMMAND_MENU_RIGHT,
+            Input.KH_COMMAND_MENU_UP,
+            Input.KH_COMMAND_MENU_DOWN,
+            Input.KH_HUD_TOGGLE,
+            Input.KH_FULLSCREEN_MAP_TOGGLE,
         )
     }
 
