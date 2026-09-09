@@ -378,6 +378,11 @@
     <string name="input_kh_command_menu_down">KH: Command Menu - Down</string>
     <string name="input_kh_hud_toggle">KH: HUD Toggle</string>
     <string name="input_kh_fullscreen_map_toggle">KH: Fullscreen Map Toggle</string>
+    <string name="input_kh_camera_up">KH: Camera Up</string>
+    <string name="input_kh_camera_down">KH: Camera Down</string>
+    <string name="input_kh_camera_left">KH: Camera Left</string>
+    <string name="input_kh_camera_right">KH: Camera Right</string>
+    <string name="kh_camera_sensitivity">KH camera sensitivity</string>
 
     <string name="layouts">Layouts</string>
     <string name="layouts_summary">Manage custom layout configurations</string>

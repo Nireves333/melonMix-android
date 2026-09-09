@@ -87,6 +87,11 @@ public:
     void khSetCameraAxes(float x, float y);
     // [KHMM] number of app-side KH addon actions (kKhAddonKeyNames in MelonInstance.cpp)
     static constexpr int kKhAddonActionCount = 9;
+    // [KHMM] ask the plugin to re-run loadConfigs on the emu thread next frame (desktop
+    // parity: settings changes raise shouldInvalidateConfigs, EmuThread.cpp:294). Used by
+    // the camera-sensitivity pref for live application. Callable from the UI thread — the
+    // flag is a plain bool, same benign cross-thread pattern as desktop.
+    void khInvalidatePluginConfigs() { if (plugin != nullptr) plugin->invalidateConfigs(); }
     void requestNdsSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestGbaSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
     void requestFirmwareSaveWrite(const u8* saveData, u32 saveLength, u32 writeOffset, u32 writeLength);
@@ -109,6 +114,8 @@ private:
     void setDateTime();
     void saveRewindState(RewindSaveState* rewindSaveState);
     void loadPlugin(u32 gameCode); // [KHMM] (re)create the KH plugin for the loaded game
+    // [KHMM] serve the plugin's config keys + (re)run loadConfigs (see the .cpp comment)
+    void khLoadPluginConfigs();
     // [KHMM] pack the plugin's pause-menu overlay state (title/subtitle/labels/selection)
     // into an emulator event so the Kotlin frontend can draw the overlay. The desktop KHMM
     // frontend draws this menu as a Qt widget (PauseMenuOverlay); the composite deliberately

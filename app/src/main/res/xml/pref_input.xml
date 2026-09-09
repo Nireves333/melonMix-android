@@ -49,4 +49,15 @@
             app:iconSpaceReserved="false"
             android:defaultValue="50"
             android:max="100" />
+
+    <!-- [KHMM] camera-stick sensitivity for the KH games (desktop spinbox range 1-4, default 3) -->
+    <SeekBarPreference
+            android:key="kh_camera_sensitivity"
+            android:title="@string/kh_camera_sensitivity"
+            app:iconSpaceReserved="false"
+            app:updatesContinuously="true"
+            android:defaultValue="3"
+            app:min="1"
+            android:max="4"
+            app:showSeekBarValue="true" />
 </PreferenceScreen>

@@ -34,6 +34,10 @@ class ControllerConfiguration(configList: List<InputConfig>) {
             Input.KH_COMMAND_MENU_DOWN,
             Input.KH_HUD_TOGGLE,
             Input.KH_FULLSCREEN_MAP_TOGGLE,
+            Input.KH_CAMERA_UP,
+            Input.KH_CAMERA_DOWN,
+            Input.KH_CAMERA_LEFT,
+            Input.KH_CAMERA_RIGHT,
         )
     }
 

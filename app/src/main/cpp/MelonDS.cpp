@@ -427,6 +427,16 @@ namespace MelonDSAndroid
             instance->khSetCameraAxes(x, y);
     }
 
+    // [KHMM] see MelonDS.h
+    std::atomic_int khCameraSensitivity { 0 };
+
+    void khSetCameraSensitivity(int sensitivity)
+    {
+        khCameraSensitivity = sensitivity;
+        if (instance)
+            instance->khInvalidatePluginConfigs();
+    }
+
     void stop()
     {
         instance->stop();

@@ -338,6 +338,13 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
+    // [KHMM] camera-stick sensitivity (1-4; desktop <root>.CameraSensitivity, default 3)
+    override fun getKhCameraSensitivity(): Flow<Int> {
+        return getOrCreatePreferenceSharedFlow("kh_camera_sensitivity") {
+            preferences.getInt("kh_camera_sensitivity", 3)
+        }
+    }
+
     override fun getRenderStrategy(): Flow<RenderStrategy> {
         return getOrCreatePreferenceSharedFlow("front_rendering") {
             if (preferences.getBoolean("front_rendering", false)) {

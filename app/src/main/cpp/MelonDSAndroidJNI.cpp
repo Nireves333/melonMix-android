@@ -609,6 +609,13 @@ Java_me_magnum_melonds_MelonEmulator_setKhCameraAxes(JNIEnv* env, jobject thiz, 
     MelonDSAndroid::khSetCameraAxes(x, y);
 }
 
+// [KHMM] camera-stick sensitivity pref (1-4, desktop default 3; 0 = follow the plugin default)
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhCameraSensitivity(JNIEnv* env, jobject thiz, jint sensitivity)
+{
+    MelonDSAndroid::khSetCameraSensitivity(sensitivity);
+}
+
 // [KHMM] current HD-cutscene video position, used to schedule video-synced BGM starts
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_setKhBgmVideoPosition(JNIEnv* env, jobject thiz, jlong positionMs)

@@ -51,6 +51,8 @@ interface SettingsRepository {
     fun getKhBgmAudioPackDays(): String
     fun getKhBgmAudioPackRecoded(): String
     fun getKhBgmVolume(): Flow<Int>
+    // [KHMM] refined controls: camera-stick sensitivity (1-4, desktop default 3)
+    fun getKhCameraSensitivity(): Flow<Int>
 
     fun getRomSortingMode(): SortingMode
     fun getRomSortingOrder(): SortingOrder

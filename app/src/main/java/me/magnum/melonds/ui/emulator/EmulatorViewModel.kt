@@ -273,6 +273,7 @@ class EmulatorViewModel @Inject constructor(
         startObservingLayoutForRom(rom)
         startObservingKhSingleScreenLayout(rom)
         startObservingKhBgmVolume()
+        startObservingKhCameraSensitivity()
         startRetroAchievementsSession(rom)
 
         val cheats = getRomInfo(rom)?.let { getRomEnabledCheats(it) } ?: emptyList()
@@ -715,6 +716,15 @@ class EmulatorViewModel @Inject constructor(
         sessionCoroutineScope.launch {
             settingsRepository.getKhBgmVolume().collect {
                 MelonEmulator.setKhBgmVolume(it)
+            }
+        }
+    }
+
+    // [KHMM] camera-stick sensitivity, live-applied to the plugin each frame
+    private fun startObservingKhCameraSensitivity() {
+        sessionCoroutineScope.launch {
+            settingsRepository.getKhCameraSensitivity().collect {
+                MelonEmulator.setKhCameraSensitivity(it)
             }
         }
     }

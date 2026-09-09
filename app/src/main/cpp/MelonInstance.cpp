@@ -448,6 +448,14 @@ u32 MelonInstance::runFrame()
         // ARM7-write the decoded axes into a RAM mailbox + inject an ARM code cave (the
         // shocoman analog hack) — pure core RAM calls, internally gated on a boot counter,
         // so calling it every frame like desktop is safe.
+        // Config reload requested (e.g. the camera-sensitivity pref changed): mirror desktop
+        // EmuThread.cpp:294-296 — clear the flag and re-run loadConfigs on the emu thread.
+        if (plugin->shouldInvalidateConfigs)
+        {
+            plugin->shouldInvalidateConfigs = false;
+            khLoadPluginConfigs();
+        }
+
         u16 khDummyTouchX = 0, khDummyTouchY = 0;
         bool khDummyTouching = false;
         plugin->applyTouchKeyMaskToTouchControls(&khDummyTouchX, &khDummyTouchY, &khDummyTouching,
@@ -834,32 +842,23 @@ std::vector<RetroAchievements::RARuntimeAchievement> MelonInstance::getRuntimeAc
         return { };
 }
 
-// [KHMM] (Re)create the KH Melon Mix plugin for the given game code and wire it to
-// the console. PluginManager::load never returns null (PluginDefault fallback), so
-// `plugin` is non-null for the life of the instance once this has run.
-void MelonInstance::loadPlugin(u32 gameCode)
+// [KHMM] Serve the plugin's config keys and (re)load them. Called at plugin creation and
+// again from runFrame whenever shouldInvalidateConfigs is raised (desktop parity: settings
+// changes re-run loadConfigs on the emu thread, EmuThread.cpp:294-309) — currently the
+// camera-sensitivity pref uses this to apply live.
+//
+// Enhanced graphics is ALWAYS loaded as enabled so the composite fragment shader is
+// available to the GL compositor regardless of the user's current setting — the setting
+// (khEnhancedGraphics) gates the per-frame driver, composite FS, and polygon hook at
+// runtime instead, which lets the user toggle it mid-session in both directions without
+// reloading the ROM. All other config keys resolve to safe defaults.
+//
+// The KH plugins read the DS firmware language ("Instance0.Firmware.Language",
+// 0=JA 1=EN 2=FR 3=DE 4=IT 5=ES 6=ZH) to pick the pause/skip-menu string language —
+// returning 0 for it would mean Japanese menus. "Instance0.Firmware.TrueLanguage" is
+// desktop KHMM's language override setting (0 = follow the DS language), left at 0.
+void MelonInstance::khLoadPluginConfigs()
 {
-    if (plugin != nullptr && plugin->getGameCode() == gameCode)
-        return;
-
-    Plugins::Plugin* oldPlugin = plugin;
-    // gameCode 0 is our pre-ROM placeholder (constructor / firmware boot) and must resolve
-    // to the inert default plugin. It cannot go through PluginManager: upstream leaves
-    // unfilled per-region gamecode constants at 0 (PluginHarvestMoonDsCute eu/jp,
-    // PluginMetroidPrimeHunters us/jp) and isCart() is a plain equality check, so
-    // PluginManager::load(0) would hand back the Harvest Moon plugin.
-    plugin = gameCode == 0 ? new Plugins::PluginDefault(0) : Plugins::PluginManager::load(gameCode);
-
-    // Load the plugin with enhanced graphics ALWAYS enabled so the composite fragment
-    // shader is available to the GL compositor regardless of the user's current setting —
-    // the setting (khEnhancedGraphics) gates the per-frame driver, composite FS, and
-    // polygon hook at runtime instead, which lets the user toggle it mid-session in both
-    // directions without reloading the ROM. All other config keys resolve to safe defaults.
-    //
-    // The KH plugins read the DS firmware language ("Instance0.Firmware.Language",
-    // 0=JA 1=EN 2=FR 3=DE 4=IT 5=ES 6=ZH) to pick the pause/skip-menu string language —
-    // returning 0 for it would mean Japanese menus. "Instance0.Firmware.TrueLanguage" is
-    // desktop KHMM's language override setting (0 = follow the DS language), left at 0.
     bool enhanced = true;
     int firmwareLanguage = currentConfiguration->firmwareConfiguration.language;
     plugin->loadConfigs(
@@ -870,9 +869,14 @@ void MelonInstance::loadPlugin(u32 gameCode)
                 return true;
             return false;
         },
+        // "<root>.CameraSensitivity" is the camera-stick speed (a shift count on the 0-15
+        // stick nibbles; desktop spinbox 1-4, default 3). Served from the pref-backed
+        // global; 0 = unset, the plugin falls back to DefaultCameraSensitivity.
         [firmwareLanguage](std::string path) -> int {
             if (path == "Instance0.Firmware.Language")
                 return firmwareLanguage;
+            if (path.size() > 18 && path.compare(path.size() - 18, 18, ".CameraSensitivity") == 0)
+                return khCameraSensitivity.load(std::memory_order_relaxed);
             return 0;
         },
         // [KHMM] "<root>.AudioPack" is the remastered-BGM audio pack subfolder (root is the
@@ -893,12 +897,31 @@ void MelonInstance::loadPlugin(u32 gameCode)
 
     // Keep the replacement-TEXTURE path OFF regardless of the enhanced-graphics toggle
     // (this gates textures only; HD replacement cutscenes are gated separately and are
-    // ported — see the cutscene callbacks below). loadConfigs always resets
-    // DisableReplacementTextures to false, so force it back to true here. Texture
-    // replacement stays deferred: no pack in hand, and TextureEntry's by-value
-    // scenes[1000] array needs a RAM refactor before it is safe on Android.
+    // ported — see the cutscene callbacks in loadPlugin). loadConfigs always resets
+    // DisableReplacementTextures to false, so force it back to true here — on every
+    // (re)load. Texture replacement stays deferred: no pack in hand, and TextureEntry's
+    // by-value scenes[1000] array needs a RAM refactor before it is safe on Android.
     if (!plugin->areReplacementTexturesDisabled())
         plugin->replacementTexturesToggle();
+}
+
+// [KHMM] (Re)create the KH Melon Mix plugin for the given game code and wire it to
+// the console. PluginManager::load never returns null (PluginDefault fallback), so
+// `plugin` is non-null for the life of the instance once this has run.
+void MelonInstance::loadPlugin(u32 gameCode)
+{
+    if (plugin != nullptr && plugin->getGameCode() == gameCode)
+        return;
+
+    Plugins::Plugin* oldPlugin = plugin;
+    // gameCode 0 is our pre-ROM placeholder (constructor / firmware boot) and must resolve
+    // to the inert default plugin. It cannot go through PluginManager: upstream leaves
+    // unfilled per-region gamecode constants at 0 (PluginHarvestMoonDsCute eu/jp,
+    // PluginMetroidPrimeHunters us/jp) and isCart() is a plain equality check, so
+    // PluginManager::load(0) would hand back the Harvest Moon plugin.
+    plugin = gameCode == 0 ? new Plugins::PluginDefault(0) : Plugins::PluginManager::load(gameCode);
+
+    khLoadPluginConfigs();
 
     plugin->setNds(nds);
 

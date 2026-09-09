@@ -67,6 +67,13 @@ namespace MelonDSAndroid {
     // [KHMM] refined controls: KH addon key press state + camera stick axes (see MelonInstance)
     extern void khSetAddonKey(int action, bool down);
     extern void khSetCameraAxes(float x, float y);
+    // [KHMM] user camera-stick sensitivity (desktop <root>.CameraSensitivity, spinbox 1-4,
+    // default 3 — a SHIFT count applied to the 0-15 stick nibbles). 0 = unset, keep the
+    // plugin's config/default value. A global (not per-instance) so the pref observer can
+    // set it regardless of ROM-load ordering; served to the plugin's loadConfigs, which is
+    // re-run on the emu thread via shouldInvalidateConfigs when the setter fires.
+    extern std::atomic_int khCameraSensitivity;
+    extern void khSetCameraSensitivity(int sensitivity);
 
     // [KHMM] remastered-BGM audio pack names (subfolders of assets/<game>/audio/), served
     // to Plugin::loadConfigs as the ".AudioPack" string config at ROM load. Set from JNI
