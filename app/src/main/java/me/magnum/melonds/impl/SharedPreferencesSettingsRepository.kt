@@ -338,10 +338,12 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
-    // [KHMM] camera-stick sensitivity (1-4; desktop <root>.CameraSensitivity, default 3)
+    // [KHMM] camera-stick speed in half-units (2-8 = 1.0-4.0 in 0.5 steps; the native side
+    // splits it into the plugin's integer shift + a 75% stick-range scale for half-steps).
+    // ListPreference stores strings; default "4" = speed 2.0
     override fun getKhCameraSensitivity(): Flow<Int> {
-        return getOrCreatePreferenceSharedFlow("kh_camera_sensitivity") {
-            preferences.getInt("kh_camera_sensitivity", 3)
+        return getOrCreatePreferenceSharedFlow("kh_camera_speed") {
+            preferences.getString("kh_camera_speed", "4")!!.toInt()
         }
     }
 

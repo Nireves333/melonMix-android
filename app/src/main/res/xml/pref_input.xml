@@ -50,14 +50,15 @@
             android:defaultValue="50"
             android:max="100" />
 
-    <!-- [KHMM] camera-stick sensitivity for the KH games (desktop spinbox range 1-4, default 3) -->
-    <SeekBarPreference
-            android:key="kh_camera_sensitivity"
+    <!-- [KHMM] camera-stick speed for the KH games. Desktop exposes 1-4 in whole steps
+         (an integer bit-shift, each step DOUBLES the speed — too coarse on the RG505);
+         we add half-steps, stored as half-units 2-8. Applies live. -->
+    <ListPreference
+            android:key="kh_camera_speed"
             android:title="@string/kh_camera_sensitivity"
-            app:iconSpaceReserved="false"
-            app:updatesContinuously="true"
-            android:defaultValue="3"
-            app:min="1"
-            android:max="4"
-            app:showSeekBarValue="true" />
+            android:summary="%s"
+            android:entries="@array/kh_camera_speed_options"
+            android:entryValues="@array/kh_camera_speed_values"
+            android:defaultValue="4"
+            app:iconSpaceReserved="false" />
 </PreferenceScreen>

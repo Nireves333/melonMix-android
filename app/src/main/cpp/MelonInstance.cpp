@@ -870,13 +870,16 @@ void MelonInstance::khLoadPluginConfigs()
             return false;
         },
         // "<root>.CameraSensitivity" is the camera-stick speed (a shift count on the 0-15
-        // stick nibbles; desktop spinbox 1-4, default 3). Served from the pref-backed
-        // global; 0 = unset, the plugin falls back to DefaultCameraSensitivity.
+        // stick nibbles — each whole step DOUBLES the speed; desktop spinbox 1-4, default
+        // 3). Our pref stores HALF-UNITS (2-8 = 1.0-4.0): the shift served here is
+        // ceil(v/2), and half-steps (odd v) scale the stick range to 75% at quantization
+        // (khQuantizeCameraAxis) — 0.75 * 2^(s+1) = 1.5 * 2^s, the linear midpoint.
+        // 0 = unset, the plugin falls back to DefaultCameraSensitivity.
         [firmwareLanguage](std::string path) -> int {
             if (path == "Instance0.Firmware.Language")
                 return firmwareLanguage;
             if (path.size() > 18 && path.compare(path.size() - 18, 18, ".CameraSensitivity") == 0)
-                return khCameraSensitivity.load(std::memory_order_relaxed);
+                return (khCameraSensitivity.load(std::memory_order_relaxed) + 1) / 2;
             return 0;
         },
         // [KHMM] "<root>.AudioPack" is the remastered-BGM audio pack subfolder (root is the
@@ -1100,6 +1103,8 @@ u32 MelonInstance::khBuildAddonMask()
 // [KHMM] Quantize one axis magnitude into a 4-bit nibble (0-15) past a deadzone. 15 is the
 // hard cap: the nibble slots in TouchKeyMask are 4 bits wide (desktop's joystick path feeds
 // 0-31 and bleeds into the neighbouring direction — a known upstream overflow, not ported).
+// Half-step speeds (odd half-unit sensitivity values) use the next plugin shift with the
+// stick range scaled to 75% — see the .CameraSensitivity comment in khLoadPluginConfigs.
 static u32 khQuantizeCameraAxis(float value)
 {
     float magnitude = value < 0 ? -value : value;
@@ -1110,7 +1115,8 @@ static u32 khQuantizeCameraAxis(float value)
     float scaled = (magnitude - deadzone) / (1.0f - deadzone);
     if (scaled > 1.0f)
         scaled = 1.0f;
-    u32 quantized = (u32) (scaled * 15.0f + 0.5f);
+    float range = (khCameraSensitivity.load(std::memory_order_relaxed) & 1) ? 11.25f : 15.0f;
+    u32 quantized = (u32) (scaled * range + 0.5f);
     return quantized > 15 ? 15 : quantized;
 }
 

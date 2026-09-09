@@ -142,7 +142,7 @@ object MelonEmulator {
     // (quantized natively; no-op outside the KH games)
     external fun setKhCameraAxes(x: Float, y: Float)
 
-    // [KHMM] KH camera-stick sensitivity (1-4, desktop default 3); live-applied
+    // [KHMM] KH camera-stick speed in half-units (2-8 = 1.0-4.0 in 0.5 steps); live-applied
     external fun setKhCameraSensitivity(sensitivity: Int)
 
     private external fun onKeyPress(key: Int)

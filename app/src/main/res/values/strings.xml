@@ -617,6 +617,29 @@
         <item>Device microphone</item>
     </string-array>
 
+    <!-- [KHMM] camera speeds in half-steps; values are half-units (2-8 = 1.0-4.0). The
+         plugin's sensitivity is an integer bit-shift (each whole step doubles the speed),
+         so half-steps are synthesized natively: next shift + stick range scaled to 75%. -->
+    <string-array name="kh_camera_speed_options">
+        <item>1 (slowest)</item>
+        <item>1.5</item>
+        <item>2</item>
+        <item>2.5</item>
+        <item>3</item>
+        <item>3.5</item>
+        <item>4 (fastest)</item>
+    </string-array>
+
+    <string-array name="kh_camera_speed_values">
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>7</item>
+        <item>8</item>
+    </string-array>
+
     <string-array name="soft_input_behaviour_options">
         <item>Always visible</item>
         <item>Hide console buttons when a controller is connected</item>

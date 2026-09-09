@@ -609,7 +609,8 @@ Java_me_magnum_melonds_MelonEmulator_setKhCameraAxes(JNIEnv* env, jobject thiz, 
     MelonDSAndroid::khSetCameraAxes(x, y);
 }
 
-// [KHMM] camera-stick sensitivity pref (1-4, desktop default 3; 0 = follow the plugin default)
+// [KHMM] camera-stick speed pref in HALF-UNITS (2-8 = 1.0-4.0 in 0.5 steps; 0 = follow the
+// plugin default). Split natively into the plugin's integer shift + a stick-range scale.
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_setKhCameraSensitivity(JNIEnv* env, jobject thiz, jint sensitivity)
 {
