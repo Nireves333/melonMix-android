@@ -281,6 +281,13 @@ class AndroidEmulatorManager(
         context.getExternalFilesDir(null)?.let {
             MelonEmulator.setKhAssetsRoot(File(it, "assets").absolutePath)
         }
+        // [KHMM] remastered-BGM pack selection is read by the plugin's config load at ROM
+        // load, so it must be pushed before setupEmulator; volume is also observed live by
+        // the EmulatorViewModel, this is just the initial value.
+        MelonEmulator.setKhAudioPacks(
+            settingsRepository.getKhBgmAudioPackDays(),
+            settingsRepository.getKhBgmAudioPackRecoded(),
+        )
         MelonEmulator.setupEmulator(
             emulatorConfiguration = emulatorConfiguration,
             dsiCameraSource = cameraManager,

@@ -156,5 +156,12 @@ object MelonEmulator {
     // skip sequence so the video stops instead of playing out over the loaded state
     external fun onKhStateLoadedDuringCutscene()
 
+    // [KHMM] remastered-BGM: audio pack subfolder per game (set before the ROM loads; "" =
+    // none), user volume 0-100 (live), and the HD-cutscene video position used to schedule
+    // video-synced BGM starts
+    external fun setKhAudioPacks(daysPack: String, recodedPack: String)
+    external fun setKhBgmVolume(volumePercent: Int)
+    external fun setKhBgmVideoPosition(positionMs: Long)
+
     external fun updateMotionData(ax: Float, ay: Float, az: Float, rx: Float, ry: Float, rz: Float)
 }

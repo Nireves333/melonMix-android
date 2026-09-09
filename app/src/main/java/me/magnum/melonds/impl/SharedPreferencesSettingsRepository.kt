@@ -322,6 +322,22 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
+    // [KHMM] remastered-BGM audio pack subfolders (under assets/<game>/audio/); "" = none
+    override fun getKhBgmAudioPackDays(): String {
+        return preferences.getString("kh_bgm_pack_days", "")!!
+    }
+
+    override fun getKhBgmAudioPackRecoded(): String {
+        return preferences.getString("kh_bgm_pack_recoded", "")!!
+    }
+
+    // [KHMM] remastered-BGM volume (0-100; desktop Audio.BGMVolume)
+    override fun getKhBgmVolume(): Flow<Int> {
+        return getOrCreatePreferenceSharedFlow("kh_bgm_volume") {
+            preferences.getInt("kh_bgm_volume", 100)
+        }
+    }
+
     override fun getRenderStrategy(): Flow<RenderStrategy> {
         return getOrCreatePreferenceSharedFlow("front_rendering") {
             if (preferences.getBoolean("front_rendering", false)) {

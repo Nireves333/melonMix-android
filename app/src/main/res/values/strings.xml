@@ -225,6 +225,12 @@
     <string name="threaded_rendering_summary">Improves performance on 3D games when enabled but may cause graphical glitches.</string>
     <string name="enhanced_graphics">Enhanced graphics (KH Melon Mix)</string>
     <string name="enhanced_graphics_summary">Single-screen widescreen presentation for supported Kingdom Hearts games. Requires the OpenGL renderer.</string>
+    <string name="kh_bgm_category">Remastered music (KH Melon Mix)</string>
+    <string name="kh_bgm_pack_days">358/2 Days music pack</string>
+    <string name="kh_bgm_pack_recoded">Re:coded music pack</string>
+    <string name="kh_bgm_volume">Music volume</string>
+    <string name="kh_bgm_pack_none">None (original DS music)</string>
+    <string name="kh_bgm_pack_summary_missing">No packs found in %s</string>
     <string name="category_video">Video</string>
     <string name="category_video_summary">Filter, threaded rendering, FPS counter</string>
     <string name="filter">Filter</string>

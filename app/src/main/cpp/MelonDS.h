@@ -65,6 +65,13 @@ namespace MelonDSAndroid {
     // [KHMM] cutscene-menu input processing for the parked emu loop (see MelonInstance)
     extern void khCutsceneHoldTick();
 
+    // [KHMM] remastered-BGM audio pack names (subfolders of assets/<game>/audio/), served
+    // to Plugin::loadConfigs as the ".AudioPack" string config at ROM load. Set from JNI
+    // before the ROM loads; empty = no pack (files at the audio/ root still resolve,
+    // desktop parity).
+    extern std::string khBgmAudioPackDays;
+    extern std::string khBgmAudioPackRecoded;
+
     /**
      * Loads the NDS ROM and, optionally, the GBA ROM.
      *

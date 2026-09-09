@@ -12,6 +12,7 @@ import me.magnum.melonds.domain.model.MicSource
 import me.magnum.melonds.extensions.isMicrophonePermissionGranted
 import me.magnum.melonds.ui.settings.PreferenceFragmentTitleProvider
 import me.magnum.melonds.utils.enumValueOfIgnoreCase
+import java.io.File
 
 class AudioPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTitleProvider {
 
@@ -30,6 +31,12 @@ class AudioPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTit
         val volumePreference = findPreference<SeekBarPreference>("volume")!!
         micSourcePreference = findPreference("mic_source")!!
 
+        // [KHMM] remastered-BGM pack pickers: entries are whatever pack subfolders exist in
+        // the on-device assets tree (assets/<game>/audio/<pack>/bgmN.wav|flac). The choice
+        // is read by the plugin at ROM load, so a change applies on the next launch.
+        setupKhBgmPackPreference(findPreference("kh_bgm_pack_days")!!, "days")
+        setupKhBgmPackPreference(findPreference("kh_bgm_pack_recoded")!!, "recoded")
+
         updateVolumePreferenceSummary(volumePreference, volumePreference.value)
 
         volumePreference.setOnPreferenceChangeListener { _, newValue ->
@@ -44,6 +51,21 @@ class AudioPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTit
             } else {
                 true
             }
+        }
+    }
+
+    // [KHMM]
+    private fun setupKhBgmPackPreference(preference: ListPreference, gameFolder: String) {
+        val audioDir = requireContext().getExternalFilesDir(null)?.let { File(it, "assets/$gameFolder/audio") }
+        val packs = audioDir?.listFiles { file -> file.isDirectory }?.map { it.name }?.sorted().orEmpty()
+
+        preference.entries = (listOf(getString(R.string.kh_bgm_pack_none)) + packs).toTypedArray()
+        preference.entryValues = (listOf("") + packs).toTypedArray()
+        if (preference.value !in preference.entryValues) {
+            preference.value = ""
+        }
+        if (packs.isEmpty() && audioDir != null) {
+            preference.summary = getString(R.string.kh_bgm_pack_summary_missing, audioDir.absolutePath)
         }
     }
 

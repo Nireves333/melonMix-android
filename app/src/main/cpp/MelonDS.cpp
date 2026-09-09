@@ -5,6 +5,7 @@
 #include "EmulatorArgsBuilder.h"
 #include "MelonDS.h"
 #include "MelonDSAudio.h"
+#include "KhBgmPlayer.h" // [KHMM]
 #include "OboeCallback.h"
 #include "MicInputOboeCallback.h"
 #include "OpenGLContext.h"
@@ -241,15 +242,18 @@ namespace MelonDSAndroid
     void pause()
     {
         pauseAudio();
+        KhBgm::pauseForEmulator(); // [KHMM] replacement BGM pauses with the emulator
     }
 
     void resume()
     {
         startAudio();
+        KhBgm::resumeForEmulator(); // [KHMM]
     }
 
     void reset()
     {
+        KhBgm::stopAll(0); // [KHMM] game restart = silence; the plugin re-detects from RAM
         instance->reset();
     }
 
@@ -383,6 +387,8 @@ namespace MelonDSAndroid
     // [KHMM] see MelonDS.h
     std::atomic_bool khCutsceneFastForward { false };
     std::atomic_bool khEmuHoldForCutscene { false };
+    std::string khBgmAudioPackDays;
+    std::string khBgmAudioPackRecoded;
 
     void khCutsceneEnded()
     {
@@ -415,6 +421,7 @@ namespace MelonDSAndroid
         khCutsceneFastForward = false;
         khEmuHoldForCutscene = false;
         OboeCallback::khMuteDsAudio = false;
+        KhBgm::stopAll(0);
         cleanupOpenGlContext();
     }
 

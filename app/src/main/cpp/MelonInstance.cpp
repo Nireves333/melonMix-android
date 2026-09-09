@@ -12,6 +12,7 @@
 #include "GPU3D_Compute.h"
 #include "GPU2D_Soft.h" // [KHMM] for GPU2D::SoftRenderer::setPlugin
 #include "plugins/PluginDefault.h" // [KHMM] direct construction for the gameCode-0 placeholder
+#include "KhBgmPlayer.h" // [KHMM] remastered-BGM replacement player
 #include "Configuration.h"
 #include "DSi.h"
 #include "DSiSupport.h"
@@ -439,6 +440,12 @@ u32 MelonInstance::runFrame()
             int32_t soundId = khMenuSound;
             fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_MENU_SOUND, sizeof(soundId), &soundId);
         }
+
+        // [KHMM] remastered-BGM replacement: refreshGameScene (above) ran the plugin's BGM
+        // state machines (refreshBackgroundMusic/refreshStreamedMusic — they read the game's
+        // sequencer state from RAM and mute the DS side), which raise polled flags for the
+        // frontend player (desktop: EmuThread.cpp:960-1000).
+        KhBgm::pollPlugin(plugin);
     }
 
     // [KHMM] While an HD replacement video plays, the hidden DS prerendered cutscene races
@@ -656,6 +663,15 @@ void MelonInstance::updateConfiguration(std::shared_ptr<EmulatorConfiguration> n
         khFireCutsceneEvent(false);
     }
 
+    // [KHMM] and for replacement BGM: with the plugin driver inert its stop flag would
+    // never be polled again, leaving the music looping forever — fade it out here. The DS
+    // side stays muted for the already-muted track (SSEQ bytes were erased in RAM), which
+    // resolves at the next track change / area transition; acceptable for a mid-session
+    // settings flip.
+    if (!khEnhancedGraphics || newConfiguration->renderer != Renderer::OpenGl) {
+        KhBgm::stopAll(500);
+    }
+
     currentConfiguration = newConfiguration;
     isRenderConfigurationDirty = true;
 }
@@ -809,7 +825,20 @@ void MelonInstance::loadPlugin(u32 gameCode)
                 return firmwareLanguage;
             return 0;
         },
-        [](std::string) -> std::string { return std::string(); }
+        // [KHMM] "<root>.AudioPack" is the remastered-BGM audio pack subfolder (root is the
+        // per-region toml id, e.g. "KHDays_US.AudioPack" / "KHReCoded_EU.AudioPack"). The
+        // Kotlin side pushes the user's pack choice per game before the ROM loads
+        // (setKhAudioPacks); empty = no pack, which leaves BGM replacement inert unless
+        // files sit at the audio/ root (desktop fallback behavior).
+        [](std::string path) -> std::string {
+            if (path.size() > 10 && path.compare(path.size() - 10, 10, ".AudioPack") == 0) {
+                if (path.compare(0, 6, "KHDays") == 0)
+                    return khBgmAudioPackDays;
+                if (path.compare(0, 9, "KHReCoded") == 0)
+                    return khBgmAudioPackRecoded;
+            }
+            return std::string();
+        }
     );
 
     // Keep the replacement-TEXTURE path OFF regardless of the enhanced-graphics toggle
@@ -984,6 +1013,11 @@ void MelonInstance::khCutsceneHoldTick()
         int32_t soundId = khMenuSound;
         fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_MENU_SOUND, sizeof(soundId), &soundId);
     }
+
+    // [KHMM] with runFrame parked, this is the only heartbeat left for the BGM player's
+    // time-based work — most importantly a delayed BGM start scheduled against the video
+    // (e.g. the end-credits "Dearly Beloved (Reprise)" cue fires long after the loop parks).
+    KhBgm::tick();
 }
 
 void MelonInstance::updateRenderer()

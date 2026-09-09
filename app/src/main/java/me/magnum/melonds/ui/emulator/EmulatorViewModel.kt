@@ -272,6 +272,7 @@ class EmulatorViewModel @Inject constructor(
         startObservingAchievementEvents()
         startObservingLayoutForRom(rom)
         startObservingKhSingleScreenLayout(rom)
+        startObservingKhBgmVolume()
         startRetroAchievementsSession(rom)
 
         val cheats = getRomInfo(rom)?.let { getRomEnabledCheats(it) } ?: emptyList()
@@ -704,6 +705,16 @@ class EmulatorViewModel @Inject constructor(
                 enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL
             }.collect {
                 uiLayoutProvider.setKhTopScreenOnly(it)
+            }
+        }
+    }
+
+    // [KHMM] remastered-BGM volume, live-applied to the native player (initial value included:
+    // the preference flow emits the current value on collect)
+    private fun startObservingKhBgmVolume() {
+        sessionCoroutineScope.launch {
+            settingsRepository.getKhBgmVolume().collect {
+                MelonEmulator.setKhBgmVolume(it)
             }
         }
     }

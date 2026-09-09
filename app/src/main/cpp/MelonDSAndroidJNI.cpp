@@ -10,6 +10,7 @@
 #include <time.h>
 #include <MelonDS.h>
 #include <MelonDSAudio.h>
+#include "KhBgmPlayer.h" // [KHMM]
 #include <RomGbaSlotConfig.h>
 #include <android/asset_manager_jni.h>
 #include "UriFileHandler.h"
@@ -571,6 +572,33 @@ Java_me_magnum_melonds_MelonEmulator_setKhAssetsRoot(JNIEnv* env, jobject thiz, 
     const char* pathString = env->GetStringUTFChars(path, JNI_FALSE);
     setenv("MELON_MIX_ASSETS", pathString, 1);
     env->ReleaseStringUTFChars(path, pathString);
+}
+
+// [KHMM] remastered-BGM audio pack subfolders (one per game), read by the plugin's
+// loadConfigs at ROM load — must be set before the ROM loads
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhAudioPacks(JNIEnv* env, jobject thiz, jstring daysPack, jstring recodedPack)
+{
+    const char* daysString = env->GetStringUTFChars(daysPack, JNI_FALSE);
+    const char* recodedString = env->GetStringUTFChars(recodedPack, JNI_FALSE);
+    MelonDSAndroid::khBgmAudioPackDays = daysString;
+    MelonDSAndroid::khBgmAudioPackRecoded = recodedString;
+    env->ReleaseStringUTFChars(daysPack, daysString);
+    env->ReleaseStringUTFChars(recodedPack, recodedString);
+}
+
+// [KHMM] user BGM volume (0-100, desktop Audio.BGMVolume); live-applied to playing tracks
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhBgmVolume(JNIEnv* env, jobject thiz, jint volumePercent)
+{
+    KhBgm::setVolumePercent(volumePercent);
+}
+
+// [KHMM] current HD-cutscene video position, used to schedule video-synced BGM starts
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhBgmVideoPosition(JNIEnv* env, jobject thiz, jlong positionMs)
+{
+    KhBgm::setVideoPositionMs(positionMs);
 }
 
 // [KHMM] HD replacement cutscene video player returns (desktop: stopVideo/cancelVideo)

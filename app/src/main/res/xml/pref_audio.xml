@@ -58,4 +58,35 @@
             android:entries="@array/mic_source_options"
             android:entryValues="@array/mic_source_values"
             android:defaultValue="blow" />
+
+    <!-- [KHMM] remastered-BGM replacement (KH Melon Mix). The pack lists are populated at
+         runtime from the subfolders of assets/<game>/audio/ in the app's external files dir. -->
+    <PreferenceCategory
+            android:title="@string/kh_bgm_category"
+            app:iconSpaceReserved="false">
+
+        <ListPreference
+                android:key="kh_bgm_pack_days"
+                android:title="@string/kh_bgm_pack_days"
+                android:summary="%s"
+                app:iconSpaceReserved="false"
+                android:defaultValue="" />
+
+        <ListPreference
+                android:key="kh_bgm_pack_recoded"
+                android:title="@string/kh_bgm_pack_recoded"
+                android:summary="%s"
+                app:iconSpaceReserved="false"
+                android:defaultValue="" />
+
+        <SeekBarPreference
+                android:key="kh_bgm_volume"
+                android:title="@string/kh_bgm_volume"
+                app:iconSpaceReserved="false"
+                app:updatesContinuously="true"
+                android:defaultValue="100"
+                app:min="0"
+                android:max="100"
+                app:showSeekBarValue="true" />
+    </PreferenceCategory>
 </PreferenceScreen>

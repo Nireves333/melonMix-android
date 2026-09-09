@@ -47,6 +47,10 @@ interface SettingsRepository {
     fun isSoundEnabled(): Boolean
     fun getAudioLatency(): AudioLatency
     fun getMicSource(): MicSource
+    // [KHMM] remastered-BGM: selected audio pack subfolder per game ("" = none) + volume
+    fun getKhBgmAudioPackDays(): String
+    fun getKhBgmAudioPackRecoded(): String
+    fun getKhBgmVolume(): Flow<Int>
 
     fun getRomSortingMode(): SortingMode
     fun getRomSortingOrder(): SortingOrder

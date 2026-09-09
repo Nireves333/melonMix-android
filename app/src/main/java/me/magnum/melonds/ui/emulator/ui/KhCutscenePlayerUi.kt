@@ -26,6 +26,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.delay
+import me.magnum.melonds.MelonEmulator
 import me.magnum.melonds.domain.model.emulator.KhCutsceneState
 import java.io.File
 
@@ -112,6 +114,21 @@ fun KhCutscenePlayerUi(
 
     LaunchedEffect(player, paused, lifecycleResumed) {
         player.playWhenReady = lifecycleResumed && !paused
+    }
+
+    // [KHMM] remastered-BGM: a couple of BGM cues are scheduled as an offset from the start
+    // of the playing video (desktop: delayAtStart - player->position()), so keep the native
+    // side's idea of the video position fresh while a video is up. Reset on teardown so a
+    // later cue can't compute against a stale position.
+    LaunchedEffect(player) {
+        try {
+            while (true) {
+                MelonEmulator.setKhBgmVideoPosition(player.currentPosition)
+                delay(250)
+            }
+        } finally {
+            MelonEmulator.setKhBgmVideoPosition(0)
+        }
     }
 
     Box(

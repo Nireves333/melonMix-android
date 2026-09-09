@@ -34,6 +34,7 @@ add_library(
         ${ANDROID-CPP}/EmulatorArgsBuilder.cpp
         ${ANDROID-CPP}/EmulatorMessageQueueJNI.cpp
         ${ANDROID-CPP}/JniEnvHandler.cpp
+        ${ANDROID-CPP}/KhBgmPlayer.cpp
         ${ANDROID-CPP}/MelonDS.cpp
         ${ANDROID-CPP}/MelonDSAndroidCameraHandler.cpp
         ${ANDROID-CPP}/MelonDSAndroidConfiguration.cpp
