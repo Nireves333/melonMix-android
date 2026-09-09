@@ -527,6 +527,8 @@ void pollPlugin(Plugins::Plugin* plugin) {
                     resumeSlotBgmId = bgmId;
                     resumeSlotPositionMs = voice->positionMs();
                 }
+                LOG_INFO(TAG, "stopping replacement BGM %u (%u ms fade%s)", bgmId, fadeOutMs,
+                         storeResumePosition ? ", position stored" : "");
                 voice->stop((int) fadeOutMs);
             }
         }
