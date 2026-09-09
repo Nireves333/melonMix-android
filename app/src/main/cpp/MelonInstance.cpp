@@ -711,6 +711,16 @@ bool MelonInstance::loadState(Savestate* state)
     {
         setBatteryLevels();
         setDateTime();
+
+        // [KHMM] the desktop calls plugin->onLoadState() after every state load
+        // (EmuInstance.cpp:780): it stops the replacement BGM (raising the stop flag for
+        // the frontend player) and resets the plugin's soundtrack state machine so the
+        // loaded state's music re-detects on the next frame. Without this the old
+        // replacement track keeps playing over the loaded state. Also covers rewind
+        // (loadRewindState funnels through here).
+        if (plugin != nullptr)
+            plugin->onLoadState();
+
         return true;
     }
     else

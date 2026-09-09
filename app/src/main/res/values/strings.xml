@@ -230,6 +230,7 @@
     <string name="kh_bgm_pack_recoded">Re:coded music pack</string>
     <string name="kh_bgm_volume">Music volume</string>
     <string name="kh_bgm_pack_none">None (original DS music)</string>
+    <string name="kh_bgm_pack_summary">%s • applies when a game is launched</string>
     <string name="kh_bgm_pack_summary_missing">No packs found in %s</string>
     <string name="category_video">Video</string>
     <string name="category_video_summary">Filter, threaded rendering, FPS counter</string>

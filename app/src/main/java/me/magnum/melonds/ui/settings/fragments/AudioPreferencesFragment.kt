@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.ListPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SeekBarPreference
 import me.magnum.melonds.R
@@ -66,6 +67,12 @@ class AudioPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTit
         }
         if (packs.isEmpty() && audioDir != null) {
             preference.summary = getString(R.string.kh_bgm_pack_summary_missing, audioDir.absolutePath)
+        } else {
+            // The pack is read by the plugin when the ROM loads, so a change only takes
+            // effect on the next launch — say so.
+            preference.summaryProvider = Preference.SummaryProvider<ListPreference> { pref ->
+                getString(R.string.kh_bgm_pack_summary, pref.entry ?: getString(R.string.kh_bgm_pack_none))
+            }
         }
     }
 
