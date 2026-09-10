@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -61,7 +63,7 @@ import androidx.compose.ui.unit.dp
 import me.magnum.melonds.R
 import me.magnum.melonds.domain.model.SortingMode
 import me.magnum.melonds.domain.model.rom.Rom
-import me.magnum.melonds.ui.common.component.romlist.ConfigurableRomItem
+import me.magnum.melonds.ui.emulator.KhMenuSoundPlayer
 import me.magnum.melonds.ui.romlist.RomIcon
 
 @Composable
@@ -81,6 +83,13 @@ fun RomListScreen(
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var showOverflowMenu by remember { mutableStateOf(false) }
+
+    // [KHMM] KH game-select screen: cursor/confirm SFX on the game rows
+    val context = LocalContext.current
+    val khMenuSounds = remember { KhMenuSoundPlayer(context) }
+    DisposableEffect(Unit) {
+        onDispose { khMenuSounds.release() }
+    }
 
     BackHandler(isSearchActive) {
         isSearchActive = false
@@ -138,11 +147,18 @@ fun RomListScreen(
                 onRefresh = onRefresh,
                 contentPadding = padding,
             ) { modifier, rom ->
-                ConfigurableRomItem(
+                KhGameSelectItem(
                     modifier = modifier.fillMaxWidth(),
                     rom = rom,
-                    onClick = { onRomSelected(rom) },
-                    onConfigClick = { onRomConfigClick(rom) },
+                    onClick = {
+                        khMenuSounds.play(KhMenuSoundPlayer.SOUND_SELECT)
+                        onRomSelected(rom)
+                    },
+                    onConfigClick = {
+                        khMenuSounds.play(KhMenuSoundPlayer.SOUND_ENTER)
+                        onRomConfigClick(rom)
+                    },
+                    onCursorMove = { khMenuSounds.play(KhMenuSoundPlayer.SOUND_MOVE) },
                     retrieveTitleIcon = { retrieveRomIcon(rom) },
                 )
             }

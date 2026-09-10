@@ -13,6 +13,13 @@ import me.magnum.melonds.R
  */
 class KhMenuSoundPlayer(context: Context) {
 
+    companion object {
+        const val SOUND_ENTER = 1
+        const val SOUND_MOVE = 2
+        const val SOUND_CONTINUE = 3
+        const val SOUND_SELECT = 4
+    }
+
     private val soundPool = SoundPool.Builder()
         .setMaxStreams(2)
         .setAudioAttributes(
