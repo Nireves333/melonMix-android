@@ -437,6 +437,16 @@ namespace MelonDSAndroid
             instance->khInvalidatePluginConfigs();
     }
 
+    // [KHMM] see MelonDS.h
+    std::atomic_bool khShowSubtitles { true };
+
+    void khSetShowSubtitles(bool show)
+    {
+        khShowSubtitles = show;
+        if (instance)
+            instance->khInvalidatePluginConfigs();
+    }
+
     void stop()
     {
         instance->stop();

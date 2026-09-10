@@ -145,6 +145,10 @@ object MelonEmulator {
     // [KHMM] KH camera-stick speed in half-units (2-8 = 1.0-4.0 in 0.5 steps); live-applied
     external fun setKhCameraSensitivity(sensitivity: Int)
 
+    // [KHMM] subtitles over HD replacement cutscenes (served to the plugin as DisableSubtitles;
+    // applies from the next cutscene start)
+    external fun setKhShowSubtitles(show: Boolean)
+
     private external fun onKeyPress(key: Int)
 
     private external fun onKeyRelease(key: Int)

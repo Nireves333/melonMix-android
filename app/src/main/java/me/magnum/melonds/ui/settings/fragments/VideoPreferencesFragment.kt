@@ -49,6 +49,7 @@ class VideoPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTit
             // [KHMM] the enhanced-graphics composite is OpenGL-only by design (the two KH
             // games are meant to be played on OpenGL; the plugin is inert on other renderers)
             add(findPreference("enable_enhanced_graphics")!!)
+            add(findPreference("kh_show_subtitles")!!)
         }
 
         computeRendererPreferences.apply {

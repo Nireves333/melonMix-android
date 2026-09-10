@@ -862,11 +862,16 @@ void MelonInstance::khLoadPluginConfigs()
     bool enhanced = true;
     int firmwareLanguage = currentConfiguration->firmwareConfiguration.language;
     plugin->loadConfigs(
+        // "<root>.DisableSubtitles" gates the .srt path resolution at cutscene start
+        // (PluginKingdomHeartsDays::replacementCutsceneSubtitlesFilePath); inverted here
+        // from the app's "show subtitles" pref.
         [enhanced](std::string path) -> bool {
             if (!enhanced &&
                 (path.find(".DisableEnhancedGraphics") != std::string::npos ||
                  path.find(".DisableSingleScreenMode") != std::string::npos))
                 return true;
+            if (path.size() > 17 && path.compare(path.size() - 17, 17, ".DisableSubtitles") == 0)
+                return !khShowSubtitles.load(std::memory_order_relaxed);
             return false;
         },
         // "<root>.CameraSensitivity" is the camera-stick speed (a shift count on the 0-15

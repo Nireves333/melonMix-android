@@ -274,6 +274,7 @@ class EmulatorViewModel @Inject constructor(
         startObservingKhSingleScreenLayout(rom)
         startObservingKhBgmVolume()
         startObservingKhCameraSensitivity()
+        startObservingKhShowSubtitles()
         startRetroAchievementsSession(rom)
 
         val cheats = getRomInfo(rom)?.let { getRomEnabledCheats(it) } ?: emptyList()
@@ -725,6 +726,16 @@ class EmulatorViewModel @Inject constructor(
         sessionCoroutineScope.launch {
             settingsRepository.getKhCameraSensitivity().collect {
                 MelonEmulator.setKhCameraSensitivity(it)
+            }
+        }
+    }
+
+    // [KHMM] cutscene-subtitle toggle, live-applied via a plugin config reload (the path is
+    // resolved when a cutscene starts, so a change applies from the next cutscene on)
+    private fun startObservingKhShowSubtitles() {
+        sessionCoroutineScope.launch {
+            settingsRepository.getKhShowSubtitles().collect {
+                MelonEmulator.setKhShowSubtitles(it)
             }
         }
     }

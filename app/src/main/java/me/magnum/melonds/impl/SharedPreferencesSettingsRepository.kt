@@ -347,6 +347,13 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
+    // [KHMM] subtitles over HD replacement cutscenes; served to the plugin as DisableSubtitles
+    override fun getKhShowSubtitles(): Flow<Boolean> {
+        return getOrCreatePreferenceSharedFlow("kh_show_subtitles") {
+            preferences.getBoolean("kh_show_subtitles", true)
+        }
+    }
+
     override fun getRenderStrategy(): Flow<RenderStrategy> {
         return getOrCreatePreferenceSharedFlow("front_rendering") {
             if (preferences.getBoolean("front_rendering", false)) {

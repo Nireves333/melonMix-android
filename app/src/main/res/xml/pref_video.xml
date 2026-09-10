@@ -36,6 +36,15 @@
             app:iconSpaceReserved="false"
             android:defaultValue="true" />
 
+    <!-- [KHMM] subtitles over HD replacement cutscenes (desktop DisableSubtitles config) -->
+    <SwitchPreference
+            android:key="kh_show_subtitles"
+            android:title="@string/kh_show_subtitles"
+            android:summary="@string/kh_show_subtitles_summary"
+            android:dependency="enable_enhanced_graphics"
+            app:iconSpaceReserved="false"
+            android:defaultValue="true" />
+
     <ListPreference
             android:key="video_filtering"
             android:title="@string/filter"

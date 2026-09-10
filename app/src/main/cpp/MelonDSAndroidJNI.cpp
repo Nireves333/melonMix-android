@@ -617,6 +617,13 @@ Java_me_magnum_melonds_MelonEmulator_setKhCameraSensitivity(JNIEnv* env, jobject
     MelonDSAndroid::khSetCameraSensitivity(sensitivity);
 }
 
+// [KHMM] subtitles over HD replacement cutscenes (inverted into the plugin's DisableSubtitles)
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhShowSubtitles(JNIEnv* env, jobject thiz, jboolean show)
+{
+    MelonDSAndroid::khSetShowSubtitles(show);
+}
+
 // [KHMM] current HD-cutscene video position, used to schedule video-synced BGM starts
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_setKhBgmVideoPosition(JNIEnv* env, jobject thiz, jlong positionMs)

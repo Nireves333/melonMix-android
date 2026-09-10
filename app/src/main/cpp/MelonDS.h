@@ -76,6 +76,13 @@ namespace MelonDSAndroid {
     extern std::atomic_int khCameraSensitivity;
     extern void khSetCameraSensitivity(int sensitivity);
 
+    // [KHMM] show subtitles over HD replacement cutscenes. Served to Plugin::loadConfigs
+    // inverted as the "<root>.DisableSubtitles" bool config (desktop PluginSettingsDialog
+    // checkbox); the plugin resolves the .srt path when a cutscene starts, so a change
+    // applies from the next cutscene. Global for the same ordering reason as above.
+    extern std::atomic_bool khShowSubtitles;
+    extern void khSetShowSubtitles(bool show);
+
     // [KHMM] remastered-BGM audio pack names (subfolders of assets/<game>/audio/), served
     // to Plugin::loadConfigs as the ".AudioPack" string config at ROM load. Set from JNI
     // before the ROM loads; empty = no pack (files at the audio/ root still resolve,
