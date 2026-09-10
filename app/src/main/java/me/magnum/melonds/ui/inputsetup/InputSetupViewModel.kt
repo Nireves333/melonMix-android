@@ -1,5 +1,7 @@
 package me.magnum.melonds.ui.inputsetup
 
+import android.view.KeyEvent
+import android.view.MotionEvent
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,6 +93,64 @@ class InputSetupViewModel @Inject constructor(private val settingsRepository: Se
             }
         }
         _inputUnderAssignment.value = null
+    }
+
+    // [KHMM] One-tap port of desktop KH Melon Mix's recommended controller layout
+    // (KingdomHeartsHDCollection::applyJoystickMappings, SDL names → Android key/axis codes):
+    // face buttons with the deliberate X↔Y swap, DS L on L1, lock-on on R1, switch target on
+    // the triggers, command menu on the physical d-pad, HUD toggle on L3, map toggle on
+    // Select, camera on the right stick — and DS movement MOVED to the left stick, because
+    // keyToInput resolves DS buttons before KH inputs, so the d-pad must be free for the
+    // command menu (outside KH gameplay the plugin passes those through as a plain d-pad).
+    // DS R and Select are left unbound like desktop (their functions moved to R1/Select).
+    // Rows not in this map (pause, fast-forward, save states...) keep the user's bindings.
+    fun applyRecommendedKhBindings() {
+        fun key(keyCode: Int) = InputConfig.Assignment.Key(null, keyCode)
+        fun axis(axisCode: Int, direction: InputConfig.Assignment.Axis.Direction) =
+            InputConfig.Assignment.Axis(null, axisCode, direction)
+        val pos = InputConfig.Assignment.Axis.Direction.POSITIVE
+        val neg = InputConfig.Assignment.Axis.Direction.NEGATIVE
+        val none = InputConfig.Assignment.None
+
+        // Key primary + axis alternate where controllers report the control either way
+        // (d-pads as DPAD keycodes vs. HAT axes, triggers as L2/R2 keycodes vs. trigger axes).
+        val recommended = mapOf(
+            Input.A to (key(KeyEvent.KEYCODE_BUTTON_A) to none),
+            Input.B to (key(KeyEvent.KEYCODE_BUTTON_B) to none),
+            Input.Y to (key(KeyEvent.KEYCODE_BUTTON_X) to none),
+            Input.X to (key(KeyEvent.KEYCODE_BUTTON_Y) to none),
+            Input.L to (key(KeyEvent.KEYCODE_BUTTON_L1) to none),
+            Input.R to (none to none),
+            Input.SELECT to (none to none),
+            Input.START to (key(KeyEvent.KEYCODE_BUTTON_START) to none),
+            Input.UP to (axis(MotionEvent.AXIS_Y, neg) to none),
+            Input.DOWN to (axis(MotionEvent.AXIS_Y, pos) to none),
+            Input.LEFT to (axis(MotionEvent.AXIS_X, neg) to none),
+            Input.RIGHT to (axis(MotionEvent.AXIS_X, pos) to none),
+            Input.KH_LOCK_ON to (key(KeyEvent.KEYCODE_BUTTON_R1) to none),
+            Input.KH_SWITCH_TARGET_LEFT to (key(KeyEvent.KEYCODE_BUTTON_L2) to axis(MotionEvent.AXIS_LTRIGGER, pos)),
+            Input.KH_SWITCH_TARGET_RIGHT to (key(KeyEvent.KEYCODE_BUTTON_R2) to axis(MotionEvent.AXIS_RTRIGGER, pos)),
+            Input.KH_COMMAND_MENU_UP to (key(KeyEvent.KEYCODE_DPAD_UP) to axis(MotionEvent.AXIS_HAT_Y, neg)),
+            Input.KH_COMMAND_MENU_DOWN to (key(KeyEvent.KEYCODE_DPAD_DOWN) to axis(MotionEvent.AXIS_HAT_Y, pos)),
+            Input.KH_COMMAND_MENU_LEFT to (key(KeyEvent.KEYCODE_DPAD_LEFT) to axis(MotionEvent.AXIS_HAT_X, neg)),
+            Input.KH_COMMAND_MENU_RIGHT to (key(KeyEvent.KEYCODE_DPAD_RIGHT) to axis(MotionEvent.AXIS_HAT_X, pos)),
+            Input.KH_HUD_TOGGLE to (key(KeyEvent.KEYCODE_BUTTON_THUMBL) to none),
+            Input.KH_FULLSCREEN_MAP_TOGGLE to (key(KeyEvent.KEYCODE_BUTTON_SELECT) to none),
+            Input.KH_CAMERA_UP to (axis(MotionEvent.AXIS_RZ, neg) to none),
+            Input.KH_CAMERA_DOWN to (axis(MotionEvent.AXIS_RZ, pos) to none),
+            Input.KH_CAMERA_LEFT to (axis(MotionEvent.AXIS_Z, neg) to none),
+            Input.KH_CAMERA_RIGHT to (axis(MotionEvent.AXIS_Z, pos) to none),
+        )
+
+        _inputConfig.update { config ->
+            config.map { current ->
+                recommended[current.input]?.let { (primary, secondary) ->
+                    current.copy(assignment = primary, altAssignment = secondary)
+                } ?: current
+            }.also {
+                onConfigsChanged(it)
+            }
+        }
     }
 
     private fun onConfigsChanged(newConfig: List<InputConfig>) {

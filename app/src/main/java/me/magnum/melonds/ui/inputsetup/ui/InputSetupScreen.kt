@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
@@ -32,7 +33,9 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
@@ -49,9 +52,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import me.magnum.melonds.R
+import androidx.compose.material.ButtonDefaults
 import me.magnum.melonds.domain.model.Input
 import me.magnum.melonds.domain.model.InputConfig
 import me.magnum.melonds.ui.common.MelonPreviewSet
+import me.magnum.melonds.ui.common.melonTextButtonColors
 import me.magnum.melonds.ui.inputsetup.InputSetupViewModel
 import me.magnum.melonds.ui.theme.MelonTheme
 
@@ -71,6 +76,7 @@ fun InputSetupScreen(
         onInputClick = viewModel::startInputAssignment,
         onClearInputClick = viewModel::clearInputAssignment,
         onCancelInputConfiguration = viewModel::stopInputAssignment,
+        onApplyKhBindings = viewModel::applyRecommendedKhBindings,
         onBackClick = onBackClick,
     )
 }
@@ -83,9 +89,12 @@ private fun InputSetupScreenContent(
     onInputClick: (Input) -> Unit,
     onClearInputClick: (Input) -> Unit,
     onCancelInputConfiguration: () -> Unit,
+    onApplyKhBindings: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
+    // [KHMM] confirmation before the one-tap layout overwrites existing game bindings
+    var showKhBindingsDialog by remember { mutableStateOf(false) }
 
     BackHandler(enabled = inputUnderConfiguration != null) {
         onCancelInputConfiguration()
@@ -108,6 +117,17 @@ private fun InputSetupScreenContent(
                                 painter = rememberVectorPainter(Icons.AutoMirrored.Filled.ArrowBack),
                                 contentDescription = stringResource(R.string.clear),
                             )
+                        }
+                    },
+                    actions = {
+                        // [KHMM] one-tap recommended KH Melon Mix controller layout.
+                        // Explicit content color: the default TextButton color is
+                        // colors.primary — invisible on the primary-colored app bar.
+                        TextButton(
+                            onClick = { showKhBindingsDialog = true },
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colors.onPrimary),
+                        ) {
+                            Text(stringResource(R.string.kh_recommended_bindings_button))
                         }
                     },
                     windowInsets = WindowInsets.safeDrawing.exclude(WindowInsets(bottom = Int.MAX_VALUE)),
@@ -138,6 +158,33 @@ private fun InputSetupScreenContent(
             if (inputUnderConfiguration != null) {
                 WaitingForInputOverlay(onCancelInputConfiguration)
             }
+        }
+
+        if (showKhBindingsDialog) {
+            AlertDialog(
+                onDismissRequest = { showKhBindingsDialog = false },
+                title = { Text(stringResource(R.string.kh_recommended_bindings_title)) },
+                text = { Text(stringResource(R.string.kh_recommended_bindings_message)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            onApplyKhBindings()
+                            showKhBindingsDialog = false
+                        },
+                        colors = melonTextButtonColors(),
+                    ) {
+                        Text(stringResource(R.string.kh_recommended_bindings_apply))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showKhBindingsDialog = false },
+                        colors = melonTextButtonColors(),
+                    ) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                },
+            )
         }
     }
 }
@@ -324,6 +371,7 @@ private fun PreviewInputSetupScreen() {
             onInputClick = { },
             onClearInputClick = { },
             onCancelInputConfiguration = { },
+            onApplyKhBindings = { },
             onBackClick = { },
         )
     }
