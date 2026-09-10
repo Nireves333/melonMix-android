@@ -31,7 +31,6 @@ import me.magnum.melonds.domain.model.rom.Rom
 import me.magnum.melonds.parcelables.RomParcelable
 import me.magnum.melonds.ui.common.melonTextButtonColors
 import me.magnum.melonds.ui.common.rom.EmulatorLaunchValidatorDelegate
-import me.magnum.melonds.ui.dsiwaremanager.DSiWareManagerActivity
 import me.magnum.melonds.ui.emulator.EmulatorActivity
 import me.magnum.melonds.ui.romdetails.RomDetailsActivity
 import me.magnum.melonds.ui.romlist.ui.DownloadProgressDialog
@@ -113,9 +112,6 @@ class RomListActivity : AppCompatActivity() {
                     hasSearchDirectories = hasSearchDirectories,
                     onSearchQueryChange = viewModel::setRomSearchQuery,
                     onSortChange = viewModel::setRomSorting,
-                    onFirmwareBoot = { consoleType ->
-                        emulatorLauncherValidatorDelegate.validateFirmware(consoleType)
-                    },
                     onRomSelected = { rom ->
                         viewModel.setRomLastPlayedNow(rom)
                         emulatorLauncherValidatorDelegate.validateRom(rom)
@@ -130,10 +126,6 @@ class RomListActivity : AppCompatActivity() {
                     onDirectorySelected = viewModel::addRomSearchDirectory,
                     onNavigateToSettings = {
                         val intent = Intent(this@RomListActivity, SettingsActivity::class.java)
-                        startActivity(intent)
-                    },
-                    onNavigateToDsiWareManager = {
-                        val intent = Intent(this@RomListActivity, DSiWareManagerActivity::class.java)
                         startActivity(intent)
                     },
                     retrieveRomIcon = { rom ->

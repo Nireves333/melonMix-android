@@ -59,7 +59,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import me.magnum.melonds.R
-import me.magnum.melonds.domain.model.ConsoleType
 import me.magnum.melonds.domain.model.SortingMode
 import me.magnum.melonds.domain.model.rom.Rom
 import me.magnum.melonds.ui.common.component.romlist.ConfigurableRomItem
@@ -72,13 +71,11 @@ fun RomListScreen(
     hasSearchDirectories: Boolean,
     onSearchQueryChange: (String?) -> Unit,
     onSortChange: (SortingMode) -> Unit,
-    onFirmwareBoot: (ConsoleType) -> Unit,
     onRomSelected: (Rom) -> Unit,
     onRomConfigClick: (Rom) -> Unit,
     onRefresh: () -> Unit,
     onDirectorySelected: (Uri) -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToDsiWareManager: () -> Unit,
     retrieveRomIcon: suspend (Rom) -> RomIcon,
 ) {
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
@@ -124,8 +121,6 @@ fun RomListScreen(
                         onOverflowMenuChange = { showOverflowMenu = it },
                         onSearchClick = { isSearchActive = true },
                         onSortChange = onSortChange,
-                        onFirmwareBoot = onFirmwareBoot,
-                        onNavigateToDsiWareManager = onNavigateToDsiWareManager,
                         onRefresh = onRefresh,
                         onNavigateToSettings = onNavigateToSettings,
                     )
@@ -166,15 +161,12 @@ private fun RomListTopBar(
     onOverflowMenuChange: (Boolean) -> Unit,
     onSearchClick: () -> Unit,
     onSortChange: (SortingMode) -> Unit,
-    onFirmwareBoot: (ConsoleType) -> Unit,
-    onNavigateToDsiWareManager: () -> Unit,
     onRefresh: () -> Unit,
     onNavigateToSettings: () -> Unit,
 ) {
     var showSortMenu by remember { mutableStateOf(false) }
-    var showFirmwareMenu by remember { mutableStateOf(false) }
 
-    val actionFocusRequesters = remember { List(4) { FocusRequester() } }
+    val actionFocusRequesters = remember { List(3) { FocusRequester() } }
     var lastFocusedActionIndex by rememberSaveable { mutableIntStateOf(-1) }
 
     TopAppBar(
@@ -255,47 +247,15 @@ private fun RomListTopBar(
                         }
                     }
 
-                    // Firmware boot menu
-                    Box {
-                        IconButton(
-                            modifier = Modifier.focusRequester(actionFocusRequesters[2]).onFocusChanged {
-                                if (it.isFocused) lastFocusedActionIndex = 2
-                            },
-                            onClick = { showFirmwareMenu = true },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_firmware),
-                                contentDescription = stringResource(R.string.action_boot_firmware),
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showFirmwareMenu,
-                            onDismissRequest = { showFirmwareMenu = false },
-                        ) {
-                            DropdownMenuItem(
-                                onClick = {
-                                    showFirmwareMenu = false
-                                    onFirmwareBoot(ConsoleType.DS)
-                                },
-                            ) {
-                                Text(stringResource(R.string.console_ds))
-                            }
-                            DropdownMenuItem(
-                                onClick = {
-                                    showFirmwareMenu = false
-                                    onFirmwareBoot(ConsoleType.DSi)
-                                },
-                            ) {
-                                Text(stringResource(R.string.console_dsi))
-                            }
-                        }
-                    }
+                    // [KHMM] Settings curation: the firmware-boot menu (bare DS/DSi boot
+                    // without a game) is gone — this app exists to launch its two games,
+                    // and DSi mode is pinned off.
 
                     // Overflow menu
                     Box {
                         IconButton(
-                            modifier = Modifier.focusRequester(actionFocusRequesters[3]).onFocusChanged {
-                                if (it.isFocused) lastFocusedActionIndex = 3
+                            modifier = Modifier.focusRequester(actionFocusRequesters[2]).onFocusChanged {
+                                if (it.isFocused) lastFocusedActionIndex = 2
                             },
                             onClick = { onOverflowMenuChange(true) },
                         ) {
@@ -308,12 +268,7 @@ private fun RomListTopBar(
                             expanded = showOverflowMenu,
                             onDismissRequest = { onOverflowMenuChange(false) },
                         ) {
-                            DropdownMenuItem(onClick = {
-                                onOverflowMenuChange(false)
-                                onNavigateToDsiWareManager()
-                            }) {
-                                Text(stringResource(R.string.dsiware_manager))
-                            }
+                            // [KHMM] DSiWare Manager removed with DSi mode
                             DropdownMenuItem(onClick = {
                                 onOverflowMenuChange(false)
                                 onRefresh()
