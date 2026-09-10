@@ -24,6 +24,15 @@
             app:iconSpaceReserved="false"
             android:defaultValue="true" />
 
+    <!-- [KHMM] read-only status row: whether the Days HD cutscene pack is installed and
+         where it belongs, mirroring the music-pack rows in the audio settings -->
+    <Preference
+            android:key="kh_cutscene_pack_status"
+            android:title="@string/kh_cutscene_pack"
+            android:dependency="enable_enhanced_graphics"
+            android:selectable="false"
+            app:iconSpaceReserved="false" />
+
     <!-- [KHMM] subtitles over HD replacement cutscenes (desktop DisableSubtitles config) -->
     <SwitchPreference
             android:key="kh_show_subtitles"

@@ -235,6 +235,12 @@
     <string name="kh_bgm_pack_none">None (original DS music)</string>
     <string name="kh_bgm_pack_summary">%s • applies when a game is launched</string>
     <string name="kh_bgm_pack_summary_missing">No packs found in %s</string>
+    <string name="kh_cutscene_pack">358/2 Days HD cutscenes</string>
+    <plurals name="kh_cutscene_pack_summary_found">
+        <item quantity="one">%d video installed</item>
+        <item quantity="other">%d videos installed</item>
+    </plurals>
+    <string name="kh_cutscene_pack_summary_missing">No videos found in %s</string>
     <string name="category_video">Video</string>
     <string name="category_video_summary">Resolution, enhanced graphics, subtitles, FPS counter</string>
     <string name="filter">Filter</string>
