@@ -12,28 +12,7 @@
             app:permissions="read_write"
             app:persistPermissions="true" />
 
-    <ListPreference
-            android:key="rom_icon_filtering"
-            android:title="@string/rom_icon_filtering"
-            android:summary="%s"
-            app:iconSpaceReserved="false"
-            android:entries="@array/rom_icon_filtering_options"
-            android:entryValues="@array/rom_icon_filtering_values"
-            android:defaultValue="none" />
-
-    <!-- 7 steps of cache size. Real cache size is equal to 128MB * (2 ^ rom_cache_max_size) -->
-    <SeekBarPreference
-            android:key="rom_cache_max_size"
-            android:title="@string/max_rom_cache_size"
-            app:iconSpaceReserved="false"
-            app:updatesContinuously="true"
-            android:defaultValue="3"
-            app:min="0"
-            android:max="6" />
-
-    <Preference
-            android:key="rom_cache_clear"
-            android:title="@string/clear_extracted_rom_cache"
-            android:summary="@string/cache_size_calculating"
-            app:iconSpaceReserved="false" />
+    <!-- [KHMM] Settings curation: icon filtering (cosmetic knob for a 2-game list) and the
+         ROM-cache size/clear controls (only used for zipped ROMs) were removed; the cache
+         size is pinned internally to the old 1GB default. -->
 </PreferenceScreen>

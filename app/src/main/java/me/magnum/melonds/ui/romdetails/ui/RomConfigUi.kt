@@ -32,8 +32,6 @@ import me.magnum.melonds.common.Permission
 import me.magnum.melonds.common.contracts.FilePickerContract
 import me.magnum.melonds.domain.model.rom.Rom
 import me.magnum.melonds.domain.model.rom.config.RomConfig
-import me.magnum.melonds.domain.model.rom.config.RuntimeConsoleType
-import me.magnum.melonds.domain.model.rom.config.RuntimeMicSource
 import me.magnum.melonds.ui.common.MelonPreviewSet
 import me.magnum.melonds.ui.common.component.dialog.TextInputDialog
 import me.magnum.melonds.ui.common.component.dialog.rememberTextInputDialogState
@@ -113,28 +111,9 @@ private fun Content(
             },
         )
 
-        val consoleOptions = stringArrayResource(id = R.array.game_runtime_console_type_options)
-        SingleChoiceItem(
-            name = stringResource(id = R.string.label_rom_config_console),
-            value = consoleOptions[romConfig.runtimeConsoleType.ordinal],
-            items = consoleOptions.toList(),
-            selectedItemIndex = romConfig.runtimeConsoleType.ordinal,
-            onItemSelected = {
-                onConfigUpdate(RomConfigUpdateEvent.RuntimeConsoleUpdate(RuntimeConsoleType.entries[it]))
-            },
-            enabled = !rom.isDsiWareTitle,
-        )
-
-        val micSourceOptions = stringArrayResource(id = R.array.game_runtime_mic_source_options)
-        SingleChoiceItem(
-            name = stringResource(id = R.string.microphone_source),
-            value = micSourceOptions[romConfig.runtimeMicSource.ordinal],
-            items = micSourceOptions.toList(),
-            selectedItemIndex = romConfig.runtimeMicSource.ordinal,
-            onItemSelected = {
-                onConfigUpdate(RomConfigUpdateEvent.RuntimeMicSourceUpdate(RuntimeMicSource.entries[it]))
-            }
-        )
+        // [KHMM] Settings curation: the per-ROM console-type and microphone-source overrides
+        // were removed from the dialog — the same DSi/mic traps as the global settings,
+        // through another door. The plumbing below them is untouched.
 
         val context = LocalContext.current
         val layoutSelectorLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

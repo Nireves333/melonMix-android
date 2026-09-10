@@ -58,7 +58,6 @@ import me.magnum.melonds.ui.Theme
 import me.magnum.melonds.utils.enumValueOfIgnoreCase
 import java.io.File
 import java.util.UUID
-import kotlin.math.pow
 
 class SharedPreferencesSettingsRepository(
     private val context: Context,
@@ -209,20 +208,21 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
+    // [KHMM] Settings curation for the two-game app: the preferences below lost their UI, so
+    // their getters are pinned to the values every verified session ran on instead of reading
+    // stale stored state (a user who once changed the old pref must not keep a hidden override).
     override fun getRomIconFiltering(): RomIconFiltering {
-        val romIconFilteringPreference = preferences.getString("rom_icon_filtering", "none")!!
-        return enumValueOfIgnoreCase(romIconFilteringPreference)
+        return RomIconFiltering.NONE
     }
 
     override fun getRomCacheMaxSize(): SizeUnit {
-        // Default cache size step is 3, or 1GB
-        val cacheSizeStepPreference = preferences.getInt("rom_cache_max_size", 3)
-        // Cache size is 128MB * (cacheSizeStepPreference ^ 2)
-        return SizeUnit.MB(128) * 2.toDouble().pow(cacheSizeStepPreference).toLong()
+        // Pinned to the old default: cache step 3 = 128MB * 2^3 = 1GB
+        return SizeUnit.MB(128) * 8
     }
+
     override fun getDefaultConsoleType(): ConsoleType {
-        val consoleTypePreference = preferences.getString("console_type", "ds")!!
-        return enumValueOfIgnoreCase(consoleTypePreference)
+        // [KHMM] DS only — the KH plugin's RAM-address logic has never been validated on DSi
+        return ConsoleType.DS
     }
 
     override fun getFirmwareConfiguration(): FirmwareConfiguration {
@@ -266,7 +266,8 @@ class SharedPreferencesSettingsRepository(
     }
 
     override fun useCustomBios(): Boolean {
-        return preferences.getBoolean("use_custom_bios", false)
+        // [KHMM] pinned: internal firmware only (custom BIOS UI removed)
+        return false
     }
 
     override fun getDsBiosDirectory(): Uri? {
@@ -280,18 +281,22 @@ class SharedPreferencesSettingsRepository(
     }
 
     override fun showBootScreen(): Boolean {
-        return preferences.getBoolean("show_bios", false)
+        // [KHMM] pinned with the custom-BIOS removal (the boot screen needed a custom BIOS)
+        return false
     }
 
     override fun isJitEnabled(): Boolean {
-        val defaultJitEnabled = Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()
-        return preferences.getBoolean("enable_jit", defaultJitEnabled)
+        // [KHMM] pinned on wherever the device supports it — every KH perf number assumes JIT;
+        // turning it off was a pure footgun. The capability check stays.
+        return Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()
     }
 
     override fun getVideoRenderer(): Flow<VideoRenderer> {
+        // [KHMM] pinned: the KH composite is OpenGL-only by design; the software and compute
+        // renderers silently disabled the whole enhanced experience. The flow shape is kept so
+        // observers behave exactly as before.
         return getOrCreatePreferenceSharedFlow("video_renderer") {
-            val videoRendererPreference = preferences.getString("video_renderer", "software")!!
-            VideoRenderer.valueOf(videoRendererPreference.uppercase())
+            VideoRenderer.OPENGL
         }
     }
 
@@ -310,8 +315,9 @@ class SharedPreferencesSettingsRepository(
     }
 
     override fun isThreadedRenderingEnabled(): Flow<Boolean> {
+        // [KHMM] pinned to the old default; only the software renderer read it, which is gone
         return getOrCreatePreferenceSharedFlow("enable_threaded_rendering") {
-            preferences.getBoolean("enable_threaded_rendering", true)
+            true
         }
     }
 
@@ -370,13 +376,12 @@ class SharedPreferencesSettingsRepository(
     }
 
     override fun getDSiCameraSource(): DSiCameraSourceType {
-        val dsiCameraSource = preferences.getString("dsi_camera_source", "physical_cameras")!!
-        return DSiCameraSourceType.valueOf(dsiCameraSource.uppercase())
+        // [KHMM] pinned: DSi mode is gone and neither KH game uses the camera
+        return DSiCameraSourceType.BLACK_SCREEN
     }
 
     override fun getDSiCameraStaticImage(): Uri? {
-        val staticImagePreference = preferences.getStringSet("dsi_camera_static_image", null)?.firstOrNull()
-        return staticImagePreference?.toUri()
+        return null
     }
 
     override fun isSoundEnabled(): Boolean {
@@ -411,8 +416,8 @@ class SharedPreferencesSettingsRepository(
     }
 
     override fun getMicSource(): MicSource {
-        val micSourcePreference = preferences.getString("mic_source", "blow")!!
-        return enumValueOfIgnoreCase(micSourcePreference)
+        // [KHMM] pinned: neither KH game uses the microphone
+        return MicSource.NONE
     }
 
     override fun getRomSortingMode(): SortingMode {

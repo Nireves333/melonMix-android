@@ -164,9 +164,9 @@
     <string name="category_general">General</string>
     <string name="category_general_summary">Theme, generic settings</string>
     <string name="category_roms">ROMs</string>
-    <string name="category_roms_summary">Search directory, icon filtering, cache settings</string>
+    <string name="category_roms_summary">ROM search directory</string>
     <string name="category_system">System</string>
-    <string name="category_system_summary">Firmware settings, custom BIOS, JIT</string>
+    <string name="category_system_summary">Game language, layout backup</string>
     <string name="theme">Theme</string>
     <string name="fast_forward_max_speed">Fast-forward max speed</string>
     <string name="rewind_description">When enabled, a save-state is periodically saved automatically. Whenever you want to go back on your progress by a short amount of time, just open the rewind screen and select the state that you want to resume from.\n\nBe aware that by enabling this feature, you may experience occasional stutters if your device is not powerful enough. A considerable amount of memory is also used depending on how often you want the state to be captured and for how long it should be kept.</string>
@@ -224,9 +224,10 @@
     <string name="fps_counter_position">FPS counter position</string>
     <string name="threaded_rendering_summary">Improves performance on 3D games when enabled but may cause graphical glitches.</string>
     <string name="enhanced_graphics">Enhanced graphics (KH Melon Mix)</string>
-    <string name="enhanced_graphics_summary">Single-screen widescreen presentation for supported Kingdom Hearts games. Requires the OpenGL renderer.</string>
+    <string name="enhanced_graphics_summary">Single-screen widescreen presentation for supported Kingdom Hearts games.</string>
+    <string name="kh_game_language">Game language (menus &amp; subtitles)</string>
     <string name="kh_show_subtitles">Cutscene subtitles (KH Melon Mix)</string>
-    <string name="kh_show_subtitles_summary">Display subtitles during HD cutscene playback, when available. The language follows the firmware language setting.</string>
+    <string name="kh_show_subtitles_summary">Display subtitles during HD cutscene playback, when available. The language follows the Game language setting.</string>
     <string name="kh_bgm_category">Remastered music (KH Melon Mix)</string>
     <string name="kh_bgm_pack_days">358/2 Days music pack</string>
     <string name="kh_bgm_pack_recoded">Re:coded music pack</string>
@@ -235,7 +236,7 @@
     <string name="kh_bgm_pack_summary">%s • applies when a game is launched</string>
     <string name="kh_bgm_pack_summary_missing">No packs found in %s</string>
     <string name="category_video">Video</string>
-    <string name="category_video_summary">Filter, threaded rendering, FPS counter</string>
+    <string name="category_video_summary">Resolution, enhanced graphics, subtitles, FPS counter</string>
     <string name="filter">Filter</string>
     <string name="internal_resolution">Internal resolution</string>
     <string name="renderer">Renderer</string>
@@ -249,7 +250,7 @@
     <string name="input_refresh_external_screen">Refresh external screen</string>
     <string name="quick_settings">Quick settings</string>
     <string name="category_audio">Audio</string>
-    <string name="category_audio_summary">Volume, latency, microphone source</string>
+    <string name="category_audio_summary">Volume, remastered music packs</string>
     <string name="enable_sound">Enable sound</string>
     <string name="interpolation">Interpolation</string>
     <string name="bitrate">Bitrate</string>

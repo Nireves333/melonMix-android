@@ -3,24 +3,19 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <Preference
-            android:key="internal_firmware_settings"
-            android:title="@string/internal_firmware_settings"
-            android:summary="@string/internal_firmware_settings_summary"
+    <!-- [KHMM] Settings curation: the firmware subscreen collapsed to just the language —
+         the one firmware setting the KH games actually surface (Melon Mix menus, HD-cutscene
+         subtitles, and dialog localization all follow it). Nickname/message/colour/birthday/
+         MAC were DS personalization neither game uses; the custom-BIOS screen (with its
+         untested-on-KH DSi console type) and the JIT footgun are pinned internally. -->
+    <ListPreference
+            android:key="firmware_settings_language"
+            android:title="@string/kh_game_language"
+            android:summary="%s"
             app:iconSpaceReserved="false"
-            android:fragment="me.magnum.melonds.ui.settings.fragments.FirmwarePreferencesFragment" />
-
-    <Preference
-            android:title="@string/custom_bios_firmware"
-            app:iconSpaceReserved="false"
-            android:fragment="me.magnum.melonds.ui.settings.fragments.CustomFirmwarePreferencesFragment" />
-
-    <SwitchPreference
-            android:key="enable_jit"
-            android:title="@string/enable_jit"
-            android:summary="@string/enable_jit_summary"
-            app:iconSpaceReserved="false"
-            android:defaultValue="true" />
+            android:entries="@array/firmware_settings_language_options"
+            android:entryValues="@array/firmware_settings_language_values"
+            android:defaultValue="1" />
 
     <Preference
             android:key="backup_internal_layout"
