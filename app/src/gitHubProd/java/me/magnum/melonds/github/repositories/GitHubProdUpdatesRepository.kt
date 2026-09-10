@@ -114,7 +114,9 @@ class GitHubProdUpdatesRepository(private val context: Context, private val api:
 
     private fun getCurrentAppVersion(versionString: String): Version {
         val parts = versionString.split(' ')
-        return if (parts.size == 1) {
+        // A leading digit means a plain version with a flavor suffix (e.g. "1.0.0 GH"),
+        // not a release-type prefix; parsing it as a ReleaseType would throw
+        return if (parts.size == 1 || parts[0].firstOrNull()?.isDigit() == true) {
             val intParts = parts[0].split('.').map { it.toInt() }.ensureMinimumSize(3, 0)
             Version(Version.ReleaseType.FINAL, intParts[0], intParts[1], intParts[2])
         } else {

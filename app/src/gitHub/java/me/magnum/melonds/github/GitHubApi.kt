@@ -4,9 +4,10 @@ import me.magnum.melonds.github.dtos.ReleaseDto
 import retrofit2.http.GET
 
 interface GitHubApi {
-    @GET("/repos/rafaelvcaetano/melonDS-android/releases/latest")
+    // [KHMM] Update checks target the Melon Mix fork's releases, not upstream's
+    @GET("/repos/Nireves333/melonMix-android/releases/latest")
     suspend fun getLatestRelease(): ReleaseDto
 
-    @GET("/repos/rafaelvcaetano/melonDS-android/releases/tags/nightly-release")
+    @GET("/repos/Nireves333/melonMix-android/releases/tags/nightly-release")
     suspend fun getLatestNightlyRelease(): ReleaseDto
 }

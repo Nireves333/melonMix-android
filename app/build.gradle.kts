@@ -29,7 +29,9 @@ android {
     compileSdk = AppConfig.compileSdkVersion
     ndkVersion = AppConfig.ndkVersion
     defaultConfig {
-        applicationId = "me.magnum.melonds"
+        // [KHMM] Own application id so Melon Mix installs alongside a real melonDS
+        // (upstream's Play Store id was inherited here before)
+        applicationId = "com.nireves333.melonmix"
         minSdk = AppConfig.minSdkVersion
         targetSdk = AppConfig.targetSdkVersion
         versionCode = AppConfig.versionCode
