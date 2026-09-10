@@ -5,6 +5,9 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="colorOnPrimary">@color/colorOnPrimary</item>
         <item name="colorOnSecondary">@color/colorOnSecondary</item>
+        <!-- [KHMM] use our navy-tinted surfaces instead of AppCompat's default grays -->
+        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="colorSurface">@color/colorSurface</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightNavigationBar">@bool/lightNavigationBar</item>
         <item name="toolbarNavigationButtonStyle">@style/Toolbar.Button.Navigation</item>
@@ -50,9 +53,11 @@
         <item name="tint">@color/colorOnPrimary</item>
     </style>
 
+    <!-- [KHMM] KH reskin: toolbar titles wear the KH Gummi display font -->
     <style name="Toolbar.TitleText" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
         <item name="android:textSize">20sp</item>
         <item name="lineHeight">24sp</item>
+        <item name="android:fontFamily">@font/kh_gummi</item>
     </style>
 
     <style name="FullscreenDialog">

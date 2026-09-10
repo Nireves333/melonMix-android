@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#333</color>
-    <color name="colorPrimaryDark">#222</color>
-    <color name="colorAccent">#f44336</color>
-    <color name="colorSurface">#303030</color>
-    <color name="colorBackground">#303030</color>
+    <!-- [KHMM] KH reskin (dark): navy-tinted surfaces, gold accent -->
+    <color name="colorPrimary">#16204A</color>
+    <color name="colorPrimaryDark">#0D1329</color>
+    <color name="colorAccent">#E5B948</color>
+    <color name="colorSurface">#151B2E</color>
+    <color name="colorBackground">#151B2E</color>
 
     <color name="textColorPrimary">#FFFFFF</color>
     <color name="textColorSecondary">#B3FFFFFF</color>
 
-    <color name="toolbarBackground">#333333</color>
+    <color name="toolbarBackground">#16204A</color>
     <color name="switchThumbUnselected">#b9b9b9</color>
 
     <color name="romConfigButtonDefault">#AAA</color>
 
-    <color name="navigationBarBackground">#333</color>
-    <color name="prefSwitchRailColor">#80F54336</color>
+    <color name="navigationBarBackground">#0D1329</color>
+    <color name="prefSwitchRailColor">#80E5B948</color>
 
     <color name="buttonContrasted">#DFFF</color>
     <color name="divider">#4A4A4A</color>

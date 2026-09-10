@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#f44336</color>
-    <color name="colorPrimaryDark">#d32f2f</color>
+    <!-- [KHMM] KH reskin: deep KH-menu navy + gold in place of melonDS red + melon green -->
+    <color name="khNavy">#101A3C</color>
+    <color name="colorPrimary">#1B2C5C</color>
+    <color name="colorPrimaryDark">#111C3D</color>
     <color name="colorAccent">@color/melonMain</color>
     <color name="colorOnPrimary">#fff</color>
     <color name="colorOnSecondary">#fff</color>
@@ -17,7 +19,7 @@
     <color name="itemSelected">#AAA</color>
 
     <color name="romConfigButtonDefault">#555</color>
-    <color name="romConfigButtonEnabled">#5C913B</color>
+    <color name="romConfigButtonEnabled">#C9A036</color>
     <color name="romConfigPrefSeparator">#DDD</color>
 
     <color name="buttonContrasted">#D000</color>
@@ -26,11 +28,12 @@
     <color name="textLayoutEditor">@android:color/black</color>
 
     <color name="navigationBarBackground">#EEE</color>
-    <color name="prefSwitchRailColor">#805C913B</color>
+    <color name="prefSwitchRailColor">#80C9A036</color>
     <color name="prefSwitchBackground">#FCCC</color>
 
-    <color name="melonMain">#5C913B</color>
-    <color name="melonDark">#49732F</color>
+    <!-- [KHMM] kept the melon* names (referenced app-wide) but they are KH gold now -->
+    <color name="melonMain">#C9A036</color>
+    <color name="melonDark">#A8842B</color>
 
     <color name="splashBackground">@color/colorPrimary</color>
     <color name="splashToolbar">@color/colorPrimaryDark</color>
