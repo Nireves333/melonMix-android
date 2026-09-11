@@ -103,9 +103,9 @@ folder, or a music pack sitting directly in `audio/` instead of its own subfolde
 videos. In-engine and dialog scenes always run on the DS engine. A missing or
 misnamed `hd<id>.mp4` will fall back to the DS cutscene.
 
-**Known bugs** (on my end, in the port):
-
-- None that I have found so far.
+**Known bugs and planned features.** Tracked on the
+[issues page](https://github.com/Nireves333/melonMix-android/issues). Nothing
+serious that I know of right now.
 
 **Not bugs, the desktop version of Melon Mix does this too:**
 
