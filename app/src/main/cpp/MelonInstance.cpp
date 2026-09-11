@@ -466,6 +466,30 @@ u32 MelonInstance::runFrame()
         // hotkey masks stay dummies — KHMM adds no stock hotkeys; the plugins only WRITE
         // bit 4 (loading-screen fast-forward request), which we don't consume yet.
         u32 khFilteredInput = inputMask;
+
+        // [KHMM] Pause-menu d-pad fix (an improvement over desktop, which has the same
+        // latent bug): with the KH layout, the physical d-pad sends command-menu addon
+        // keys, and the plugin only converts those into DS d-pad bits in the ADDON hook
+        // (PluginKingdomHeartsDays.cpp, the non-ingame else branch) — AFTER the hotkey
+        // hook, whose pause-menu reader (Plugin.cpp isPauseMenuGameScene block) therefore
+        // never sees them. The mask is rebuilt from raw input every frame, so the addon
+        // conversion never survives into the next frame's read either. Net effect: the
+        // d-pad moved the game's hidden native pause menu but not the overlay, and A then
+        // confirmed two menus pointing at different entries. Converting the held command-
+        // menu keys into DS d-pad bits BEFORE the hotkey hook keeps the overlay and the
+        // hidden native menu on the same cursor. The addon hook's own conversion then
+        // re-clears the same bits (idempotent). Scoped to the game pause menu: the
+        // cutscene skip menu already handles the d-pad via
+        // _superApplyAddonKeysToCutsceneMenu, and converting there would double-step it.
+        if (plugin->isPauseMenuGameScene())
+        {
+            u32 khHeld = khAddonHeld.load(std::memory_order_relaxed);
+            if (khHeld & (1u << 3)) khFilteredInput &= ~(1u << 5); // KH_COMMAND_MENU_LEFT  -> DS left
+            if (khHeld & (1u << 4)) khFilteredInput &= ~(1u << 4); // KH_COMMAND_MENU_RIGHT -> DS right
+            if (khHeld & (1u << 5)) khFilteredInput &= ~(1u << 6); // KH_COMMAND_MENU_UP    -> DS up
+            if (khHeld & (1u << 6)) khFilteredInput &= ~(1u << 7); // KH_COMMAND_MENU_DOWN  -> DS down
+        }
+
         u32 khHotkeyMask = 0, khHotkeyPress = 0;
         plugin->applyHotkeyToInputMaskOrTouchControls(&khFilteredInput, &khDummyTouchX, &khDummyTouchY,
                                                       &khDummyTouching, &khHotkeyMask, &khHotkeyPress);
@@ -536,8 +560,17 @@ u32 MelonInstance::runFrame()
         // Do nothing. Emulator already renders into the texture, which was set-up above
     }
 
+    // [KHMM] The plugin can veto presenting a frame (desktop EmuThread.cpp:467+532 skips
+    // drawScreenGL when shouldRenderFrame() is false): false while an ingame/replacement
+    // cutscene runs — hides the DS cutscene racing behind the HD video, including the
+    // fast-forwarded frames between native detection and the video overlay appearing —
+    // and for the off-screen half of Days' double-3D scenes. The frame still ran; only
+    // its presentation is skipped, so the screen holds the last presented frame (by
+    // detection time that is the cutscene scene's black composite).
+    bool khVetoPresent = khPluginActive && plugin != nullptr && plugin->isReady() && !plugin->shouldRenderFrame();
+
     bool isSleeping = nds->CPUStop & CPUStop_Sleep;
-    if (!isSleeping) [[likely]]
+    if (!isSleeping && !khVetoPresent) [[likely]]
     {
         renderFrame->renderFence = eglCreateSyncKHR(currentDisplay, EGL_SYNC_FENCE_KHR, nullptr);
         glFlush();
