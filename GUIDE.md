@@ -92,6 +92,13 @@ Some notes:
 
 ## 5. When something looks wrong
 
+**White screen when starting a game.** You are probably using an EU or JP ROM.
+The Melon Mix enhancements only exist for the US versions, because the mod reads
+game memory at addresses that are only known for those. Use a US ROM. From the
+next release, EU and JP ROMs will at least boot and play, but as plain DS games
+without any of the enhancements
+([issue #10](https://github.com/Nireves333/melonMix-android/issues/10)).
+
 **Games missing from the list.** Check the ROM folder in *Settings > ROMs*, then
 use *Refresh ROM list* from the menu.
 
