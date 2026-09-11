@@ -1,62 +1,63 @@
-# melonDS Android port
-Android port of [melonDS](https://melonds.kuribo64.net/), a DS and DSi emulator.
+# Melon Mix (Android)
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80">](https://play.google.com/store/apps/details?id=me.magnum.melonds&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1)[<img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="80">](https://github.com/rafaelvcaetano/melonDS-android/releases/latest)
+KH Melon Mix on Android.
 
-|Rom List|Dark Theme|Pocket Physics|Layout Editor|
-|---|---|---|---|
-|![Screenshot 1](./.github/images/screenshot_mobile0.png)|![Screenshot 2](./.github/images/screenshot_mobile1.png)|![Screenshot 3](./.github/images/screenshot_mobile2.png)|![Screenshot 4](./.github/images/screenshot_mobile3.png)|
+I couldn't find an Android port of KH Melon Mix so I attempted to make one that runs on my Anbernic RG505. One
+widescreen screen, camera on the right stick, HD cutscenes, remastered music. It's
+[melonDS-android](https://github.com/rafaelvcaetano/melonDS-android) with the [KH Melon Mix](https://github.com/vitor251093/KHMelonMix) features ported into it.
 
-# Missing Features
-*  Local Multiplayer
-*  DSi SD card support
-*  Customizable button skins
-*  More display filters
+| Game select | 358/2 Days | Re:coded |
+|---|---|---|
+| ![Game select](./.github/images/game_select.png) | ![358/2 Days](./.github/images/days_gameplay.png) | ![Re:coded](./.github/images/recoded_gameplay.png) |
 
-# Performance
-Performance is solid on 64 bit devices with thread rendering and JIT enabled, and should run at full speed on flagship devices. Performance on older devices, specially
-32 bit devices, is very poor due to the lack of JIT support.
+I built and tested this on an RG505 and nothing else. You're welcome to run it on
+other devices and to build on the code, but I can't promise anything beyond my own
+setup. If something breaks, open an issue here, not on KH Melon Mix or melonDS. I'll try to fix issues when I can :)
 
-# Integration with third-party frontends
-It's possible to launch melonDS from third part frontends. For that, you will need to have the ROMs you want to launch already scanned by melonDS. Then, you can configure your
-third-party frontend with the following configuration:
-*  Package name: `me.magnum.melonds`
-*  Activity name: `me.magnum.melonds.ui.emulator.EmulatorActivity`
-*  Parameters (choose one):
-    * Intent data (preferred) - a URI of the NDS ROM (ZIP and 7z files are supported). Ensure [read permission is granted](https://developer.android.com/reference/android/content/Intent#FLAG_GRANT_READ_URI_PERMISSION)
-    * `uri` (deprecated) - a string with the [SAF](https://developer.android.com/guide/topics/providers/create-document-provider) URI of the NDS ROM (ZIP and 7z files are supported)
-    * `PATH` (deprecated) - a string with the absolute path to the NDS ROM (ZIP and 7z files are supported)
+There's a ready-made APK on the
+[releases page](https://github.com/Nireves333/melonMix-android/releases). Setup,
+building from source, asset packs and known issues are all in
+**[the guide](./GUIDE.md)**.
 
-### Pegasus metadata files
-* [melonds.metadata.txt](./.github/pegasus/melonds.metadata.txt) 
-* [melonds-nightly.metadata.txt](./.github/pegasus/melonds-nightly.metadata.txt) 
+## Features
 
-### Info regarding save files
-When launching ROMs from third-party frontends, if melonDS hasn't scanned that particular ROM previously, it won't be able to create the save file next to the ROM file if the
-option "Save next to ROM file" is enabled in the settings or the save file directory is not set. Instead, melonDS will create a save file in
-`Android/data/me.magnum.melonds/files/saves`
+- The whole game on one widescreen screen. The HUD, minimap and command menu are
+  moved onto it.
+- Upscaled internal resolution. 3x holds (mostly) 60fps on the RG505 in normal non-overclocked mode.
+- Camera on the right stick. Lock On and Switch Target get their own buttons, and
+  the command menu goes on the d-pad.
+- A "KH layout" button in the settings that applies all the recommended bindings
+  at once.
+- HD cutscene replacement with subtitles in six languages (Days only).
+- Remastered music replacement with proper loop points (both games).
+- The app itself is reworked for the two games: KH styled game select screen, menu
+  sounds, and settings cut down to what these games actually need/use.
 
-# Nightly Builds
+Not in it: texture replacement, HD cutscenes for Re:coded (upstream doesn't have
+those yet either), Lua scripting.
 
-To have access to the latest changes, you can install nightly builds that you can find [here](https://github.com/rafaelvcaetano/melonDS-android/releases/tag/nightly-release).
+Possible update: Touch controls, when I have time :)
 
-Be aware that these builds can contain more bugs than usual and you may need to clear your app data to get it to work properly after updates.
+## ROMs
 
-# Building
-To build the project you will need Android SDK, NDK and CMake.
+This repo has no ROMs, no BIOS files and no game assets, and I won't link to any.
+Dump your own games. I tested with US ROMs. Please don't ask.
 
-## Build steps:
-1.  Clone the project, including submodules with:
-    
-    `git clone --recurse-submodules https://github.com/rafaelvcaetano/melonDS-android.git`
-2.  Install the Android SDK, NDK and CMake
-3.  Build with:
-    1.  Unix: `./gradlew :app:assembleGitHubProdDebug`
-    2.  Windows: `gradlew.bat :app:assembleGitHubProdDebug`
-4.  The generated APK can be found at `app/gitHubProd/debug`
+## Credits
 
-If you want to create a release build, you will need to modify your `local.properties` file to include the following fields:  
-*  `MELONDS_KEYSTORE=<path_to_your_keystore>`
-*  `MELONDS_KEYSTORE_PASSWORD=<keystore_password>`
-*  `MELONDS_KEY_ALIAS=<name_of_your_key_alias>`
-*  `MELONDS_KEY_PASSWORD=<key_alias_password>`
+This project is a port of other people's work:
+
+- [KH Melon Mix](https://github.com/vitor251093/KHMelonMix). All the enhancements
+  come from them: vitor251093, justedni, Kite2810, sandwichwater, DaniKH1 and their
+  community. If you're on PC, use their version.
+- [melonDS-android](https://github.com/rafaelvcaetano/melonDS-android) by
+  rafaelvcaetano, the app this is built on.
+- [melonDS](https://github.com/melonDS-emu/melonDS), the emulator under everything.
+
+## License
+
+GPLv3, same as melonDS, melonDS-android and KH Melon Mix. See [LICENSE](./LICENSE).
+The modified emulator core is public in the
+[melonMix-android-lib](https://github.com/Nireves333/melonMix-android-lib) submodule.
+
+<sub>This repository is co-authored by Anthropic's Claude.</sub>
