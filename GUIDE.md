@@ -105,7 +105,8 @@ misnamed `hd<id>.mp4` will fall back to the DS cutscene.
 
 **Known bugs and planned features.** Tracked on the
 [issues page](https://github.com/Nireves333/melonMix-android/issues). Nothing
-serious that I know of right now.
+serious that I know of right now. Found a new bug or want a feature? Post it in
+[Discussions](https://github.com/Nireves333/melonMix-android/discussions).
 
 **Not bugs, the desktop version of Melon Mix does this too:**
 
@@ -117,5 +118,6 @@ serious that I know of right now.
 **Performance on other devices.** 64-bit with OpenGL ES 3.2 only (the JIT needs
 64-bit). Internal resolution matters the most here, some devices will run at 5x fine while other can only run 2x. 
 
-**Anything else.** Open an issue on this repo with your device, what you did, and
-a logcat capture if you can get one.
+**Anything else.** Open a
+[bug report](https://github.com/Nireves333/melonMix-android/discussions/new?category=bug-reports)
+with your device, what you did, and a logcat capture if you can get one.

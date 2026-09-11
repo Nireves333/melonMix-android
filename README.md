@@ -12,7 +12,7 @@ widescreen screen, camera on the right stick, HD cutscenes, remastered music. It
 
 I built and tested this on an RG505 and nothing else. You're welcome to run it on
 other devices and to build on the code, but I can't promise anything beyond my own
-setup. If something breaks, open an issue here, not on KH Melon Mix or melonDS. I'll try to fix issues when I can :)
+setup. If something breaks, open a bug report in [Discussions](https://github.com/Nireves333/melonMix-android/discussions) here, not on KH Melon Mix or melonDS. I'll try to fix issues when I can :)
 
 There's a ready-made APK on the
 [releases page](https://github.com/Nireves333/melonMix-android/releases). Setup,

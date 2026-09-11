@@ -1,0 +1,19 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before posting: texture replacement, Lua scripting and HD cutscenes for Re:coded are out of scope (see the README). Touch controls are already on my list.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What do you want and why?
+    validations:
+      required: true
+  - type: textarea
+    id: desktop
+    attributes:
+      label: Does desktop Melon Mix have it?
+      description: If this exists in the desktop version, say so. Porting an existing feature is much more likely to happen than building a new one.
+    validations:
+      required: false

@@ -1,0 +1,44 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Check [the guide](https://github.com/Nireves333/melonMix-android/blob/master/GUIDE.md) first, section 5 covers the most common problems.
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: What are you playing on?
+      placeholder: Anbernic RG505
+    validations:
+      required: true
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - 358/2 Days
+        - Re:coded
+        - Both / the app itself
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Logcat or anything else
+      description: A logcat capture helps a lot if you can get one (adb logcat). Screenshots welcome too.
+    validations:
+      required: false
