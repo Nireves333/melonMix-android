@@ -10,6 +10,7 @@ import dagger.hilt.android.components.ActivityRetainedComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.scopes.ActivityRetainedScoped
 import dagger.multibindings.IntoMap
+import me.magnum.melonds.common.KhAssetsFolderManager
 import me.magnum.melonds.common.PermissionHandler
 import me.magnum.melonds.common.camera.BlackDSiCameraSource
 import me.magnum.melonds.common.camera.DSiCameraSource
@@ -117,6 +118,7 @@ object EmulatorRuntimeModule {
         romFileProcessorFactory: RomFileProcessorFactory,
         permissionHandler: PermissionHandler,
         cameraManagerMultiplexer: DSiCameraSourceMultiplexer,
+        khAssetsFolderManager: KhAssetsFolderManager,
     ): EmulatorManager {
         return AndroidEmulatorManager(
             context,
@@ -126,6 +128,7 @@ object EmulatorRuntimeModule {
             romFileProcessorFactory,
             permissionHandler,
             cameraManagerMultiplexer,
+            khAssetsFolderManager,
         )
     }
 

@@ -4,8 +4,10 @@ import android.os.Bundle
 import androidx.preference.Preference
 import dagger.hilt.android.AndroidEntryPoint
 import me.magnum.melonds.R
+import me.magnum.melonds.common.KhAssetsFolderManager
 import me.magnum.melonds.ui.settings.PreferenceFragmentTitleProvider
 import java.io.File
+import javax.inject.Inject
 
 // [KHMM] This app is OpenGL-only (the KH composite requires it), so the renderer picker and
 // its per-renderer preference visibility machinery are gone, along with the software-only
@@ -14,18 +16,20 @@ import java.io.File
 @AndroidEntryPoint
 class VideoPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTitleProvider {
 
+    @Inject lateinit var khAssetsFolderManager: KhAssetsFolderManager
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.pref_video, rootKey)
 
         // [KHMM] The HD cutscene pack has no picker (files either exist or they don't), but
         // like the music packs it should tell the user where it lives and what was found.
         val cutsceneStatus = findPreference<Preference>("kh_cutscene_pack_status")!!
-        val cinematicsDir = requireContext().getExternalFilesDir(null)?.let { File(it, "assets/days/cutscenes/cinematics") }
-        val videoCount = cinematicsDir?.listFiles { file -> file.isFile && file.extension.equals("mp4", ignoreCase = true) }?.size ?: 0
+        val cinematicsDir = File(khAssetsFolderManager.assetsRoot(), "days/cutscenes/cinematics")
+        val videoCount = cinematicsDir.listFiles { file -> file.isFile && file.extension.equals("mp4", ignoreCase = true) }?.size ?: 0
         cutsceneStatus.summary = if (videoCount > 0) {
             resources.getQuantityString(R.plurals.kh_cutscene_pack_summary_found, videoCount, videoCount)
         } else {
-            getString(R.string.kh_cutscene_pack_summary_missing, cinematicsDir?.absolutePath.orEmpty())
+            getString(R.string.kh_cutscene_pack_summary_missing, cinematicsDir.absolutePath)
         }
     }
 

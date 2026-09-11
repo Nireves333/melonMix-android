@@ -15,4 +15,28 @@
     <!-- [KHMM] Settings curation: icon filtering (cosmetic knob for a 2-game list) and the
          ROM-cache size/clear controls (only used for zipped ROMs) were removed; the cache
          size is pinned internally to the old 1GB default. -->
+
+    <!-- [KHMM] Relocatable asset folder: the Melon Mix asset packs (HD cutscenes, music,
+         subtitles) live in a user-visible shared-storage folder. Summaries and visibility
+         are managed in RomsPreferencesFragment. -->
+    <PreferenceCategory
+            android:title="@string/kh_assets_category"
+            app:iconSpaceReserved="false">
+
+        <Preference
+                android:key="kh_assets_folder"
+                android:title="@string/kh_assets_folder"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="kh_assets_grant_access"
+                android:title="@string/kh_assets_grant_access"
+                android:summary="@string/kh_assets_grant_access_summary"
+                app:iconSpaceReserved="false" />
+
+        <Preference
+                android:key="kh_assets_migrate"
+                android:title="@string/kh_assets_migrate"
+                app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 </PreferenceScreen>
