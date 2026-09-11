@@ -960,7 +960,12 @@ void MelonInstance::loadPlugin(u32 gameCode)
     // unfilled per-region gamecode constants at 0 (PluginHarvestMoonDsCute eu/jp,
     // PluginMetroidPrimeHunters us/jp) and isCart() is a plain equality check, so
     // PluginManager::load(0) would hand back the Harvest Moon plugin.
-    plugin = gameCode == 0 ? new Plugins::PluginDefault(0) : Plugins::PluginManager::load(gameCode);
+    // Non-US KH carts also resolve to the inert default plugin: their enhancement RAM
+    // address tables are unconfirmed/wrong upstream and white-screened the game at boot
+    // (see isEnhancedGameCode). They run as plain, unenhanced DS games.
+    plugin = (gameCode == 0 || !MelonDSAndroid::isEnhancedGameCode(gameCode))
+            ? new Plugins::PluginDefault(gameCode)
+            : Plugins::PluginManager::load(gameCode);
 
     khLoadPluginConfigs();
 
