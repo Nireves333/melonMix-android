@@ -453,6 +453,16 @@ namespace MelonDSAndroid
             instance->khInvalidatePluginConfigs();
     }
 
+    // [KHMM] see MelonDS.h
+    std::atomic_bool khSingleScreenMode { true };
+
+    void khSetSingleScreenMode(bool enabled)
+    {
+        khSingleScreenMode = enabled;
+        if (instance)
+            instance->khInvalidatePluginConfigs();
+    }
+
     void stop()
     {
         instance->stop();

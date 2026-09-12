@@ -905,6 +905,11 @@ void MelonInstance::khLoadPluginConfigs()
                 return true;
             if (path.size() > 17 && path.compare(path.size() - 17, 17, ".DisableSubtitles") == 0)
                 return !khShowSubtitles.load(std::memory_order_relaxed);
+            // "<root>.DisableSingleScreenMode" — off = dual-screen devices keep bottom-screen
+            // content on the native bottom screen (the composite FS passes the bottom half
+            // through untouched; the plugin returns screenLayout_Top + no shapes)
+            if (path.size() > 24 && path.compare(path.size() - 24, 24, ".DisableSingleScreenMode") == 0)
+                return !khSingleScreenMode.load(std::memory_order_relaxed);
             return false;
         },
         // "<root>.CameraSensitivity" is the camera-stick speed (a shift count on the 0-15

@@ -275,6 +275,7 @@ class EmulatorViewModel @Inject constructor(
         startObservingKhBgmVolume()
         startObservingKhCameraSensitivity()
         startObservingKhShowSubtitles()
+        startObservingKhSingleScreenMode()
         startRetroAchievementsSession(rom)
 
         val cheats = getRomInfo(rom)?.let { getRomEnabledCheats(it) } ?: emptyList()
@@ -702,9 +703,16 @@ class EmulatorViewModel @Inject constructor(
                         ((gameCode[2].code and 0xFF) shl 16) or
                         ((gameCode[3].code and 0xFF) shl 24)
             )
-            // [KHMM] the composite (and therefore the single-screen layout) is OpenGL-only
-            combine(settingsRepository.isEnhancedGraphicsEnabled(), settingsRepository.getVideoRenderer()) { enabled, renderer ->
-                enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL
+            // [KHMM] the composite (and therefore the single-screen layout) is OpenGL-only.
+            // With single-screen mode off (dual-screen devices, e.g. AYN Thor) the forced
+            // top-only layout is dropped too: the user's own layout shows both screens and
+            // the plugin keeps bottom-screen content on the native bottom screen.
+            combine(
+                settingsRepository.isEnhancedGraphicsEnabled(),
+                settingsRepository.getVideoRenderer(),
+                settingsRepository.getKhSingleScreenMode(),
+            ) { enabled, renderer, singleScreen ->
+                enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL && singleScreen
             }.collect {
                 uiLayoutProvider.setKhTopScreenOnly(it)
             }
@@ -736,6 +744,16 @@ class EmulatorViewModel @Inject constructor(
         sessionCoroutineScope.launch {
             settingsRepository.getKhShowSubtitles().collect {
                 MelonEmulator.setKhShowSubtitles(it)
+            }
+        }
+    }
+
+    // [KHMM] single-screen mode toggle, live-applied via a plugin config reload (the layout
+    // side reacts separately in startObservingKhSingleScreenLayout)
+    private fun startObservingKhSingleScreenMode() {
+        sessionCoroutineScope.launch {
+            settingsRepository.getKhSingleScreenMode().collect {
+                MelonEmulator.setKhSingleScreenMode(it)
             }
         }
     }

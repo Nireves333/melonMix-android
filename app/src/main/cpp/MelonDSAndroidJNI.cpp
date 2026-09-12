@@ -624,6 +624,14 @@ Java_me_magnum_melonds_MelonEmulator_setKhShowSubtitles(JNIEnv* env, jobject thi
     MelonDSAndroid::khSetShowSubtitles(show);
 }
 
+// [KHMM] single-screen mode (inverted into the plugin's DisableSingleScreenMode); off keeps
+// bottom-screen content on the native bottom screen for dual-screen devices
+JNIEXPORT void JNICALL
+Java_me_magnum_melonds_MelonEmulator_setKhSingleScreenMode(JNIEnv* env, jobject thiz, jboolean enabled)
+{
+    MelonDSAndroid::khSetSingleScreenMode(enabled);
+}
+
 // [KHMM] current HD-cutscene video position, used to schedule video-synced BGM starts
 JNIEXPORT void JNICALL
 Java_me_magnum_melonds_MelonEmulator_setKhBgmVideoPosition(JNIEnv* env, jobject thiz, jlong positionMs)

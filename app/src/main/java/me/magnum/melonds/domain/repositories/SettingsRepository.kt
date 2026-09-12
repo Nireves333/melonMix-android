@@ -55,6 +55,7 @@ interface SettingsRepository {
     fun getKhCameraSensitivity(): Flow<Int>
     // [KHMM] subtitles over HD replacement cutscenes (desktop DisableSubtitles, inverted)
     fun getKhShowSubtitles(): Flow<Boolean>
+    fun getKhSingleScreenMode(): Flow<Boolean>
 
     fun getRomSortingMode(): SortingMode
     fun getRomSortingOrder(): SortingOrder

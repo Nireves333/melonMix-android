@@ -83,6 +83,15 @@ namespace MelonDSAndroid {
     extern std::atomic_bool khShowSubtitles;
     extern void khSetShowSubtitles(bool show);
 
+    // [KHMM] single-screen mode (default on): everything composited onto one enhanced
+    // screen. Served to Plugin::loadConfigs inverted as "<root>.DisableSingleScreenMode"
+    // (desktop PluginSettingsDialog checkbox). Off = the plugin keeps bottom-screen
+    // content on the native bottom screen (dual-screen devices, e.g. the AYN Thor);
+    // the Kotlin side then also drops the forced top-only layout. Global for the same
+    // ordering reason as above; applies live via shouldInvalidateConfigs.
+    extern std::atomic_bool khSingleScreenMode;
+    extern void khSetSingleScreenMode(bool enabled);
+
     // [KHMM] remastered-BGM audio pack names (subfolders of assets/<game>/audio/), served
     // to Plugin::loadConfigs as the ".AudioPack" string config at ROM load. Set from JNI
     // before the ROM loads; empty = no pack (files at the audio/ root still resolve,

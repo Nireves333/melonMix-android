@@ -226,6 +226,8 @@
     <string name="enhanced_graphics">Enhanced graphics (KH Melon Mix)</string>
     <string name="enhanced_graphics_summary">Single-screen widescreen presentation for supported Kingdom Hearts games.</string>
     <string name="kh_game_language">Game language (menus &amp; subtitles)</string>
+    <string name="kh_single_screen_mode">Single screen mode</string>
+    <string name="kh_single_screen_mode_summary">Show everything on one enhanced screen. Turn off on dual-screen devices (such as the AYN Thor) to keep bottom screen content on the bottom screen.</string>
     <string name="kh_show_subtitles">Cutscene subtitles (KH Melon Mix)</string>
     <string name="kh_show_subtitles_summary">Display subtitles during HD cutscene playback, when available. The language follows the Game language setting.</string>
     <string name="kh_bgm_category">Remastered music (KH Melon Mix)</string>
