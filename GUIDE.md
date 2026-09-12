@@ -98,6 +98,11 @@ Some notes:
   On weaker hardware start at 1x and work your way up.
 - **Enhanced graphics** (*Video*): Turn it off and you get the
   stock dual screen DS view. (This turns off all Melon Mix features!!!)
+- **Single screen mode** (*Video*): On by default, everything is shown on one
+  enhanced screen. Turn it off on dual screen devices (like the AYN Thor) to
+  keep bottom screen content on the bottom screen. You keep the enhancements
+  (HD cutscenes, music, subtitles, controls), and both screens show in your
+  normal screen layout.
 - **Game language** (*System*): sets the language for in-game menus, the pause
   overlay and subtitles.
 - **Save files** (*Save Files*): saves and save states can be kept in a folder of
@@ -106,12 +111,12 @@ Some notes:
 
 ## 5. When something looks wrong
 
-**White screen when starting a game.** You are probably using an EU or JP ROM.
-The Melon Mix enhancements only exist for the US versions, because the mod reads
-game memory at addresses that are only known for those. Use a US ROM. From the
-next release, EU and JP ROMs will at least boot and play, but as plain DS games
+**No enhancements with an EU or JP ROM.** The Melon Mix enhancements only exist
+for the US versions, because the mod reads game memory at addresses that are
+only known for those. EU and JP ROMs boot and play, but as plain DS games
 without any of the enhancements
 ([issue #10](https://github.com/Nireves333/melonMix-android/issues/10)).
+Use a US ROM for the full experience.
 
 **Games missing from the list.** Check the ROM folder in *Settings > ROMs*, then
 use *Refresh ROM list* from the menu.
