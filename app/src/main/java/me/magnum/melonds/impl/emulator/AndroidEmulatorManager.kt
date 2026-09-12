@@ -33,10 +33,10 @@ import me.magnum.melonds.domain.model.rom.config.RuntimeConsoleType
 import me.magnum.melonds.domain.model.rom.config.RuntimeEnum
 import me.magnum.melonds.domain.repositories.SettingsRepository
 import me.magnum.melonds.domain.services.EmulatorManager
+import me.magnum.melonds.common.KhAssetsFolderManager
 import me.magnum.melonds.impl.camera.DSiCameraSourceMultiplexer
 import me.magnum.melonds.ui.emulator.rewind.model.RewindSaveState
 import me.magnum.melonds.ui.emulator.rewind.model.RewindWindow
-import java.io.File
 
 class AndroidEmulatorManager(
     private val context: Context,
@@ -46,6 +46,7 @@ class AndroidEmulatorManager(
     private val romFileProcessorFactory: RomFileProcessorFactory,
     private val permissionHandler: PermissionHandler,
     private val cameraManager: DSiCameraSourceMultiplexer,
+    private val khAssetsFolderManager: KhAssetsFolderManager,
 ) : EmulatorManager {
 
     private val _emulatorEvents = MutableSharedFlow<EmulatorEvent>(extraBufferCapacity = Int.MAX_VALUE)
@@ -273,14 +274,13 @@ class AndroidEmulatorManager(
     }
 
     private fun setupEmulator(emulatorConfiguration: EmulatorConfiguration) {
-        // [KHMM] KH Melon Mix asset packs (HD cutscene videos) live in the app-specific
-        // external files dir under "assets/<game>/..." — native code reads it directly (no
-        // storage permission needed). MELON_MIX_ASSETS must point AT the assets folder: the
-        // plugin appends only "<game>" to it (the "assets" segment is appended in the
-        // non-env fallback branch only).
-        context.getExternalFilesDir(null)?.let {
-            MelonEmulator.setKhAssetsRoot(File(it, "assets").absolutePath)
-        }
+        // [KHMM] KH Melon Mix asset packs live in the user-visible Melon Mix folder
+        // (KhAssetsFolderManager; needs the all-files-access permission — without it the
+        // native reads just fail and the game runs without enhancements, which is fine).
+        // MELON_MIX_ASSETS must point AT the assets folder: the plugin appends only
+        // "<game>" to it (the "assets" segment is appended in the non-env fallback branch
+        // only).
+        MelonEmulator.setKhAssetsRoot(khAssetsFolderManager.assetsRoot().absolutePath)
         // [KHMM] remastered-BGM pack selection is read by the plugin's config load at ROM
         // load, so it must be pushed before setupEmulator; volume is also observed live by
         // the EmulatorViewModel, this is just the initial value.

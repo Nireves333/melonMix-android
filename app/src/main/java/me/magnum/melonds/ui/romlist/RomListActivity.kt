@@ -2,11 +2,16 @@ package me.magnum.melonds.ui.romlist
 
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.AlertDialog
@@ -20,9 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import me.magnum.melonds.R
+import me.magnum.melonds.common.KhAssetsFolderManager
 import me.magnum.melonds.domain.model.ConsoleType
 import me.magnum.melonds.domain.model.DownloadProgress
 import me.magnum.melonds.domain.model.RomScanningStatus
@@ -39,17 +47,50 @@ import me.magnum.melonds.ui.romlist.ui.ProdUpdateAvailableDialog
 import me.magnum.melonds.ui.romlist.ui.RomListScreen
 import me.magnum.melonds.ui.settings.SettingsActivity
 import me.magnum.melonds.ui.theme.MelonTheme
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class RomListActivity : AppCompatActivity() {
 
+    // [KHMM] One-time setup prompt for the shared-storage Melon Mix asset folder: offer the
+    // move for pre-1.0.1 app-scoped assets, or explain the folder + permission on a fresh
+    // install. Answered once; the same controls live in Settings under ROMs.
+    private sealed class KhAssetsPrompt {
+        data object Migrate : KhAssetsPrompt()
+        data object Fresh : KhAssetsPrompt()
+    }
+
     private val viewModel: RomListViewModel by viewModels()
     private val updatesViewModel: UpdatesViewModel by viewModels()
+
+    @Inject lateinit var khAssetsFolderManager: KhAssetsFolderManager
+
+    private var khAssetsPrompt by mutableStateOf<KhAssetsPrompt?>(null)
+    private var isMigratingKhAssets by mutableStateOf(false)
+    private var migrateKhAssetsAfterGrant = false
+
+    // The all-files-access settings screen reports nothing back; re-check on return.
+    private val allFilesAccessLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        onStorageAccessRequestReturned()
+    }
+
+    private val legacyStoragePermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        onStorageAccessRequestReturned()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
+
+        // [KHMM]
+        if (savedInstanceState == null && !khAssetsFolderManager.isSetupPromptHandled()) {
+            khAssetsPrompt = when {
+                khAssetsFolderManager.needsMigration() -> KhAssetsPrompt.Migrate
+                !khAssetsFolderManager.hasStorageAccess() -> KhAssetsPrompt.Fresh
+                else -> null
+            }
+        }
 
         val emulatorLauncherValidatorDelegate = EmulatorLaunchValidatorDelegate(this, object : EmulatorLaunchValidatorDelegate.Callback {
             override fun onRomValidated(rom: Rom) {
@@ -192,7 +233,115 @@ class RomListActivity : AppCompatActivity() {
                         },
                     )
                 }
+
+                // [KHMM] asset-folder setup prompt (migration or fresh-install explainer)
+                khAssetsPrompt?.let { prompt ->
+                    val assetsRootPath = khAssetsFolderManager.assetsRoot().absolutePath
+                    AlertDialog(
+                        onDismissRequest = { dismissKhAssetsPrompt() },
+                        title = { Text(stringResource(R.string.kh_assets_setup_title)) },
+                        text = {
+                            val message = when (prompt) {
+                                is KhAssetsPrompt.Migrate -> stringResource(R.string.kh_assets_migration_prompt, assetsRootPath)
+                                is KhAssetsPrompt.Fresh -> stringResource(R.string.kh_assets_fresh_prompt, assetsRootPath)
+                            }
+                            Text(message)
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    when (prompt) {
+                                        is KhAssetsPrompt.Migrate -> {
+                                            if (khAssetsFolderManager.hasStorageAccess()) {
+                                                startKhAssetsMigration()
+                                            } else {
+                                                migrateKhAssetsAfterGrant = true
+                                                requestStorageAccess()
+                                            }
+                                        }
+                                        is KhAssetsPrompt.Fresh -> requestStorageAccess()
+                                    }
+                                },
+                                colors = melonTextButtonColors(),
+                            ) {
+                                val label = when (prompt) {
+                                    is KhAssetsPrompt.Migrate -> stringResource(R.string.kh_assets_move_now)
+                                    is KhAssetsPrompt.Fresh -> stringResource(R.string.kh_assets_grant)
+                                }
+                                Text(label.uppercase())
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { dismissKhAssetsPrompt() },
+                                colors = melonTextButtonColors(),
+                            ) {
+                                Text(stringResource(R.string.kh_assets_later).uppercase())
+                            }
+                        },
+                    )
+                }
+
+                if (isMigratingKhAssets) {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        text = { Text(stringResource(R.string.kh_assets_migrating)) },
+                        confirmButton = { },
+                    )
+                }
             }
+        }
+    }
+
+    // [KHMM]
+    private fun dismissKhAssetsPrompt() {
+        khAssetsFolderManager.setSetupPromptHandled()
+        khAssetsPrompt = null
+    }
+
+    // [KHMM]
+    private fun requestStorageAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName"))
+            try {
+                allFilesAccessLauncher.launch(intent)
+            } catch (e: Exception) {
+                allFilesAccessLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            }
+        } else {
+            legacyStoragePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
+
+    // [KHMM]
+    private fun onStorageAccessRequestReturned() {
+        if (khAssetsFolderManager.hasStorageAccess()) {
+            if (migrateKhAssetsAfterGrant) {
+                startKhAssetsMigration()
+            } else {
+                dismissKhAssetsPrompt()
+            }
+        }
+        migrateKhAssetsAfterGrant = false
+    }
+
+    // [KHMM]
+    private fun startKhAssetsMigration() {
+        khAssetsPrompt = null
+        isMigratingKhAssets = true
+        lifecycleScope.launch {
+            val result = khAssetsFolderManager.migrateLegacyAssets()
+            isMigratingKhAssets = false
+            khAssetsFolderManager.setSetupPromptHandled()
+            val message = when (result) {
+                is KhAssetsFolderManager.MigrationResult.Failed ->
+                    getString(R.string.kh_assets_migration_failed, result.reason.orEmpty())
+                is KhAssetsFolderManager.MigrationResult.NotEnoughSpace ->
+                    getString(R.string.kh_assets_migration_no_space, Formatter.formatFileSize(this@RomListActivity, result.requiredBytes))
+                else ->
+                    getString(R.string.kh_assets_migration_done, khAssetsFolderManager.assetsRoot().absolutePath)
+            }
+            Toast.makeText(this@RomListActivity, message, Toast.LENGTH_LONG).show()
         }
     }
 }

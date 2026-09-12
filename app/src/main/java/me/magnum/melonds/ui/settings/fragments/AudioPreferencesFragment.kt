@@ -4,13 +4,19 @@ import android.os.Bundle
 import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.SeekBarPreference
+import dagger.hilt.android.AndroidEntryPoint
 import me.magnum.melonds.R
+import me.magnum.melonds.common.KhAssetsFolderManager
 import me.magnum.melonds.ui.settings.PreferenceFragmentTitleProvider
 import java.io.File
+import javax.inject.Inject
 
 // [KHMM] Settings curation: the microphone-source preference (and its permission flow) is
 // gone — neither KH game uses the microphone, so the source is pinned to NONE internally.
+@AndroidEntryPoint
 class AudioPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTitleProvider {
+
+    @Inject lateinit var khAssetsFolderManager: KhAssetsFolderManager
 
     override fun getTitle() = getString(R.string.category_audio)
 
@@ -34,15 +40,15 @@ class AudioPreferencesFragment : BasePreferenceFragment(), PreferenceFragmentTit
 
     // [KHMM]
     private fun setupKhBgmPackPreference(preference: ListPreference, gameFolder: String) {
-        val audioDir = requireContext().getExternalFilesDir(null)?.let { File(it, "assets/$gameFolder/audio") }
-        val packs = audioDir?.listFiles { file -> file.isDirectory }?.map { it.name }?.sorted().orEmpty()
+        val audioDir = File(khAssetsFolderManager.assetsRoot(), "$gameFolder/audio")
+        val packs = audioDir.listFiles { file -> file.isDirectory }?.map { it.name }?.sorted().orEmpty()
 
         preference.entries = (listOf(getString(R.string.kh_bgm_pack_none)) + packs).toTypedArray()
         preference.entryValues = (listOf("") + packs).toTypedArray()
         if (preference.value !in preference.entryValues) {
             preference.value = ""
         }
-        if (packs.isEmpty() && audioDir != null) {
+        if (packs.isEmpty()) {
             preference.summary = getString(R.string.kh_bgm_pack_summary_missing, audioDir.absolutePath)
         } else {
             // The pack is read by the plugin when the ROM loads, so a change only takes

@@ -35,7 +35,7 @@ that it's about a minute. The APK ends up at
 Note: debug builds install as package `com.nireves333.melonmix.dev`, next to the
 release app (`com.nireves333.melonmix`). A signed release build is
 `:app:assembleGitHubProdRelease` with a keystore set through the `MELONDS_KEYSTORE*`
-entries in `local.properties`. The package name matters once, for the asset path in
+entries in `local.properties`. Both packages read the same asset folder from
 step 3.
 
 ## 2. First run
@@ -57,10 +57,12 @@ packs below are optional extras on top.
 
 These are the same packs desktop KH Melon Mix uses. Check the
 [KH Melon Mix project](https://github.com/vitor251093/KHMelonMix) for how to get
-them. Once you have them, copy them onto the device into this tree:
+them. They go into the `MelonMix` folder at the top level of the device's
+internal storage, right next to `Download`. Create it with any file manager if
+it isn't there yet, then copy the packs into this tree:
 
 ```
-Android/data/com.nireves333.melonmix/files/assets/    (add .dev for debug builds)
+MelonMix/assets/
 ├── days/
 │   ├── audio/<pack name>/bgm0.wav, bgm1.wav, ...
 │   ├── cutscenes/cinematics/hd802.mp4, hd803.mp4, ...
@@ -69,6 +71,15 @@ Android/data/com.nireves333.melonmix/files/assets/    (add .dev for debug builds
 └── recoded/
     └── audio/<pack name>/bgm0.flac, ... (+ bgm.ini)
 ```
+
+The app needs the **All files access** permission to read the folder. It asks on
+first launch, and the same switch is in *Settings > ROMs* along with the option
+to move the folder somewhere else, like an SD card.
+
+Coming from 1.0.0? Your packs are still in the old app folder under
+`Android/data`. The app finds them on launch and offers to move them to the new
+folder. Nothing is downloaded again, but the move can take a few minutes for
+large packs and needs enough free space for a copy while it runs.
 
 Some notes:
 
@@ -89,6 +100,9 @@ Some notes:
   stock dual screen DS view. (This turns off all Melon Mix features!!!)
 - **Game language** (*System*): sets the language for in-game menus, the pause
   overlay and subtitles.
+- **Save files** (*Save Files*): saves and save states can be kept in a folder of
+  your choice too. Put them next to the asset packs and they survive a reinstall
+  and can be synced with tools like Syncthing.
 
 ## 5. When something looks wrong
 
@@ -102,9 +116,11 @@ without any of the enhancements
 **Games missing from the list.** Check the ROM folder in *Settings > ROMs*, then
 use *Refresh ROM list* from the menu.
 
-**Packs not detected.** Usually the path. Check the package name
-(`com.nireves333.melonmix`, plus `.dev` if you built a debug APK), a misspelled
-folder, or a music pack sitting directly in `audio/` instead of its own subfolder.
+**Packs not detected.** Usually the path or the permission. Check that the packs
+are under `MelonMix/assets/` on internal storage (*Settings > ROMs* shows the
+exact folder the app is looking at and whether it found anything), that storage
+access is granted, and that no folder is misspelled. A music pack has to sit in
+its own subfolder under `audio/`, not directly in it.
 
 **A cutscene played in DS graphics.** Only the pre-rendered cinematics have HD
 videos. In-engine and dialog scenes always run on the DS engine. A missing or
