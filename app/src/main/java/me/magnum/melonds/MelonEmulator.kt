@@ -148,6 +148,7 @@ object MelonEmulator {
     // [KHMM] subtitles over HD replacement cutscenes (served to the plugin as DisableSubtitles;
     // applies from the next cutscene start)
     external fun setKhShowSubtitles(show: Boolean)
+    external fun setKhSingleScreenMode(enabled: Boolean)
 
     private external fun onKeyPress(key: Int)
 

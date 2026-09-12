@@ -360,6 +360,14 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
+    // [KHMM] single-screen mode; served to the plugin as DisableSingleScreenMode. Off keeps
+    // bottom-screen content on the native bottom screen (dual-screen devices, e.g. AYN Thor)
+    override fun getKhSingleScreenMode(): Flow<Boolean> {
+        return getOrCreatePreferenceSharedFlow("kh_single_screen_mode") {
+            preferences.getBoolean("kh_single_screen_mode", true)
+        }
+    }
+
     override fun getRenderStrategy(): Flow<RenderStrategy> {
         return getOrCreatePreferenceSharedFlow("front_rendering") {
             if (preferences.getBoolean("front_rendering", false)) {
