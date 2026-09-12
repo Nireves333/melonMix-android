@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import me.magnum.melonds.R
+import me.magnum.melonds.domain.model.Rect
 import me.magnum.melonds.domain.model.emulator.KhPauseMenuState
 import kotlin.math.PI
 import kotlin.math.cos
@@ -47,9 +48,15 @@ import androidx.compose.material.Text
  * src/frontend/qt_sdl/MainWindow/PauseMenuOverlay.cpp) — all proportions are relative to the
  * overlay height scaled by the plugin's HUD-scale-derived size modifier, matching desktop.
  * Purely visual: input passes through to the game, which runs its own menu logic natively.
+ *
+ * [menuBounds] confines the menu to the on-screen top-screen viewport (desktop parents the
+ * overlay to the emulator panel, Screen.cpp:115) — needed when the layout is not the forced
+ * full-window one, e.g. dual-screen layouts with single-screen mode off. Null = full window
+ * (the cutscene skip menu over a full-window HD video). The darken layer always covers the
+ * whole window either way.
  */
 @Composable
-fun KhPauseMenuUi(state: KhPauseMenuState?) {
+fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null) {
     if (state == null) {
         return
     }
@@ -58,7 +65,20 @@ fun KhPauseMenuUi(state: KhPauseMenuState?) {
     val khGummi = FontFamily(Font(R.font.kh_gummi))
     val khSogei = FontFamily(Font(R.font.kh_sogei))
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
+    if (state.darkenBackground) {
+        Box(Modifier.fillMaxSize().background(Color(0f, 0f, 0f, 120f / 255f)))
+    }
+
+    val menuAreaModifier = if (menuBounds != null) {
+        Modifier
+            .offset { IntOffset(menuBounds.x, menuBounds.y) }
+            .size(with(density) { menuBounds.width.toDp() }, with(density) { menuBounds.height.toDp() })
+    } else {
+        Modifier.fillMaxSize()
+    }
+
+    BoxWithConstraints(modifier = menuAreaModifier) {
         val wPx = constraints.maxWidth.toFloat()
         val hPx = constraints.maxHeight.toFloat()
         val m = state.sizeModifier
@@ -84,10 +104,6 @@ fun KhPauseMenuUi(state: KhPauseMenuState?) {
             animationSpec = infiniteRepeatable(tween(600_000, easing = LinearEasing)),
             label = "clock",
         )
-
-        if (state.darkenBackground) {
-            Box(Modifier.fillMaxSize().background(Color(0f, 0f, 0f, 120f / 255f)))
-        }
 
         // "PAUSE" ribbon graphic with the localized title text on top, squeezed 20% horizontally
         val titleImageHeightPx = hPx * 0.15f * pauseSize
@@ -219,6 +235,7 @@ fun KhPauseMenuUi(state: KhPauseMenuState?) {
                 )
             }
         }
+    }
     }
 }
 

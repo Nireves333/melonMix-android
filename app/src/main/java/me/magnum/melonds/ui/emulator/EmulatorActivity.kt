@@ -169,6 +169,11 @@ class EmulatorActivity : AppCompatActivity() {
 
     private var presentation: ExternalPresentation? = null
 
+    // [KHMM] current on-screen top-screen viewport, observed by the pause-menu overlay so it
+    // centers on the game display instead of the window (they differ on non-forced layouts,
+    // e.g. dual-screen layouts with single-screen mode off)
+    private val khTopScreenRect = androidx.compose.runtime.mutableStateOf<me.magnum.melonds.domain.model.Rect?>(null)
+
     private lateinit var handler: Handler
     private val displayListener = object : DisplayManager.DisplayListener {
 
@@ -386,7 +391,12 @@ class EmulatorActivity : AppCompatActivity() {
                     onFailed = { MelonEmulator.onKhCutsceneFailed(it) },
                 )
 
-                KhPauseMenuUi(khPauseMenuState.value)
+                // Full-window while an HD video is up (the skip menu draws over the
+                // full-window video); otherwise anchored to the top-screen viewport.
+                KhPauseMenuUi(
+                    state = khPauseMenuState.value,
+                    menuBounds = if (khCutsceneState.value != null) null else khTopScreenRect.value,
+                )
 
                 RewindWindowUi(
                     state = rewindWindowState.value,
@@ -866,6 +876,9 @@ class EmulatorActivity : AppCompatActivity() {
             topView?.onTop ?: false,
             bottomView?.onTop ?: false,
         )
+
+        // [KHMM] the pause-menu overlay anchors to the top-screen viewport
+        khTopScreenRect.value = topView?.getRect()
 
         // [KHMM] tell the enhanced-graphics plugin the real aspect ratio of the on-screen
         // top-screen viewport (its composite is built for exactly this aspect). Pushed on
