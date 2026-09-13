@@ -147,6 +147,13 @@ private:
     // [KHMM] whether the frontend pause-menu overlay is currently shown (last snapshot sent);
     // used to retract it when enhanced graphics is toggled off mid-menu
     bool khPauseMenuShown = false;
+    // [KHMM] plugin->shouldRenderFrame() captured BEFORE RunFrame, like desktop
+    // (EmuThread.cpp:467); gates presentation of that same frame AND the next frame's
+    // buildShapes (desktop runs buildShapes only after presented frames, EmuThread.cpp:532).
+    // Must not be re-evaluated after RunFrame: in Days double-3D scenes (Sora visions) the
+    // game flips PowerControl9 during the frame, and a post-frame read inverts the veto —
+    // presenting exactly the frames whose 3D belongs to the hidden screen. Emu thread only.
+    bool khShouldPresentFrame = true;
     // [KHMM] target display aspect ratio pushed into the plugin each frame (single-screen
     // presentation). Set from the real on-screen top-screen viewport by the frontend
     // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read
