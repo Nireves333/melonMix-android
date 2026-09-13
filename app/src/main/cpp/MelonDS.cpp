@@ -144,13 +144,14 @@ namespace MelonDSAndroid
     }
 
     bool isEnhancedGameCode(u32 gameCode) {
-        // Only the US carts count as enhanced: upstream KHMM's EU/JP RAM address tables
-        // are unconfirmed or outright wrong (the EU in-engine cutscene address is marked
-        // "TODO: KH Wrong"), and a misread there made the frame veto hold back every
-        // frame — EU ROMs white-screened at boot. Non-US KH carts run as plain DS games
-        // on the inert default plugin instead (see MelonInstance::loadPlugin). The
-        // region is the gamecode's 4th character ('E' = US), packed little-endian.
-        return Plugins::PluginManager::isSupported(gameCode) && ((gameCode >> 24) & 0xFF) == 'E';
+        // All carts the KH plugins list count as enhanced, EU/JP included. Upstream's
+        // EU/JP RAM address tables are partly unconfirmed (some marked "TODO: KH Wrong"),
+        // so those regions run with LIMITED support: a misread can stick the frame veto
+        // false, which on 1.0.0/1.0.1 white-screened EU ROMs at boot. The veto is now
+        // bounded in MelonInstance::runFrame (misdetection guard), so a stuck veto
+        // degrades to desktop-like glitches instead of a white screen. The settings UI
+        // and GUIDE carry the limited-support disclaimer.
+        return Plugins::PluginManager::isSupported(gameCode);
     }
 
     int loadRom(std::string romPath, std::string sramPath, RomGbaSlotConfig* gbaSlotConfig)

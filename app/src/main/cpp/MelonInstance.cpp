@@ -589,6 +589,21 @@ u32 MelonInstance::runFrame()
     // see khShouldPresentFrame in MelonInstance.h).
     bool khVetoPresent = khPluginActive && plugin != nullptr && plugin->isReady() && !khShouldPresentFrame;
 
+    // [KHMM] Misdetection guard (see khVetoHeldFrames in MelonInstance.h): a veto held for
+    // ~3 seconds with no replacement video running cannot be legitimate — the longest real
+    // no-video holds are the sub-second detection-to-video gap and the alternating halves
+    // of double-3D scenes (which reset the counter every other frame). Present anyway so a
+    // wrong RAM read (EU/JP carts) degrades to glitches instead of an eternal white screen.
+    if (khVetoPresent && !plugin->IsReplacementCutsceneRunning())
+    {
+        if (++khVetoHeldFrames > 180)
+            khVetoPresent = false;
+    }
+    else
+    {
+        khVetoHeldFrames = 0;
+    }
+
     bool isSleeping = nds->CPUStop & CPUStop_Sleep;
     if (!isSleeping && !khVetoPresent) [[likely]]
     {
@@ -985,9 +1000,9 @@ void MelonInstance::loadPlugin(u32 gameCode)
     // unfilled per-region gamecode constants at 0 (PluginHarvestMoonDsCute eu/jp,
     // PluginMetroidPrimeHunters us/jp) and isCart() is a plain equality check, so
     // PluginManager::load(0) would hand back the Harvest Moon plugin.
-    // Non-US KH carts also resolve to the inert default plugin: their enhancement RAM
-    // address tables are unconfirmed/wrong upstream and white-screened the game at boot
-    // (see isEnhancedGameCode). They run as plain, unenhanced DS games.
+    // EU/JP KH carts load their plugin like US ones (limited support: partly unconfirmed
+    // RAM addresses upstream; the runFrame veto bound keeps a misread from white-screening
+    // the game — see isEnhancedGameCode).
     plugin = (gameCode == 0 || !MelonDSAndroid::isEnhancedGameCode(gameCode))
             ? new Plugins::PluginDefault(gameCode)
             : Plugins::PluginManager::load(gameCode);

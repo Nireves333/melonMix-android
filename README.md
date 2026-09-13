@@ -41,8 +41,9 @@ Possible update: Touch controls, when I have time :)
 ## ROMs
 
 This repo has no ROMs, no BIOS files and no game assets, and I won't link to any.
-Dump your own games, and use the **US versions**: the Melon Mix enhancements only
-exist for those. EU and JP ROMs are not enhanced (see the guide). Please don't ask.
+Dump your own games, and use the **US versions**: that's what the Melon Mix
+enhancements are made for. EU and JP ROMs work with limited support and can
+glitch (see the guide). Please don't ask.
 
 ## Credits
 

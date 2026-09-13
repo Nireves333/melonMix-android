@@ -224,7 +224,7 @@
     <string name="fps_counter_position">FPS counter position</string>
     <string name="threaded_rendering_summary">Improves performance on 3D games when enabled but may cause graphical glitches.</string>
     <string name="enhanced_graphics">Enhanced graphics (KH Melon Mix)</string>
-    <string name="enhanced_graphics_summary">Single-screen widescreen presentation for supported Kingdom Hearts games.</string>
+    <string name="enhanced_graphics_summary">Single-screen widescreen presentation for supported Kingdom Hearts games. US ROMs work best. EU and JP ROMs have limited support and can show glitches.</string>
     <string name="kh_game_language">Game language (menus &amp; subtitles)</string>
     <string name="kh_single_screen_mode">Single screen mode</string>
     <string name="kh_single_screen_mode_summary">Show everything on one enhanced screen. Turn off on dual-screen devices (such as the AYN Thor) to keep bottom screen content on the bottom screen.</string>
