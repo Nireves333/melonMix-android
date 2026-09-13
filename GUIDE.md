@@ -145,6 +145,9 @@ serious that I know of right now. Found a new bug or want a feature? Post it in
 - Re:coded can show a duplicated sliver of the notification header
   ([KHMelonMix#476](https://github.com/vitor251093/KHMelonMix/issues/476)). I'll
   pick up their fix when it lands.
+- With Single screen mode off (dual screen devices), some UI elements can break
+  up around the Sora memory scenes in Days. Dual screen mode has a list of rough
+  edges upstream too ([KHMelonMix#445](https://github.com/vitor251093/KHMelonMix/issues/445)).
 
 **Performance on other devices.** 64-bit with OpenGL ES 3.2 only (the JIT needs
 64-bit). Internal resolution matters the most here, some devices will run at 5x fine while other can only run 2x. 
