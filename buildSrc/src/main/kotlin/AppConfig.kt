@@ -6,6 +6,6 @@ object AppConfig {
 
     // [KHMM] Melon Mix has its own identity and versioning, starting at 1.0.0
     // (forked from melonDS-android 2.0.1 / versionCode 41)
-    const val versionCode = 2
-    const val versionName = "1.0.1"
+    const val versionCode = 3
+    const val versionName = "1.0.2"
 }
