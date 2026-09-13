@@ -154,6 +154,13 @@ private:
     // game flips PowerControl9 during the frame, and a post-frame read inverts the veto —
     // presenting exactly the frames whose 3D belongs to the hidden screen. Emu thread only.
     bool khShouldPresentFrame = true;
+    // [KHMM] consecutive frames the veto has held with NO replacement video actually
+    // running. Guards against detection misreads pinning the veto (EU/JP carts have
+    // partly unconfirmed RAM addresses upstream; a stuck veto = eternal white screen,
+    // the pre-1.0.2 EU boot failure). Legit video holds are exempt: the video covers
+    // the screen for minutes and desktop suppresses presentation the whole time too.
+    // Emu thread only.
+    int khVetoHeldFrames = 0;
     // [KHMM] target display aspect ratio pushed into the plugin each frame (single-screen
     // presentation). Set from the real on-screen top-screen viewport by the frontend
     // (EmulatorActivity.updateRendererScreenAreas -> JNI); written on the UI thread, read

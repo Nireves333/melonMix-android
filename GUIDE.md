@@ -111,12 +111,15 @@ Some notes:
 
 ## 5. When something looks wrong
 
-**No enhancements with an EU or JP ROM.** The Melon Mix enhancements only exist
-for the US versions, because the mod reads game memory at addresses that are
-only known for those. EU and JP ROMs boot and play, but as plain DS games
-without any of the enhancements
-([issue #10](https://github.com/Nireves333/melonMix-android/issues/10)).
-Use a US ROM for the full experience.
+**Glitches with an EU or JP ROM.** EU and JP ROMs get the enhancements, but with
+limited support: the mod reads game memory at addresses that are only fully
+confirmed for the US versions, and upstream marks some EU and JP addresses as
+unverified. Expect graphical glitches, and scenes that briefly freeze and then
+snap back (the app detects a stuck scene and recovers after about 3 seconds
+instead of white-screening like older versions did,
+[issue #10](https://github.com/Nireves333/melonMix-android/issues/10)).
+Use a US ROM for the full experience. If an EU or JP ROM is unplayable, you can
+still turn off enhanced graphics and play it as a plain DS game.
 
 **Games missing from the list.** Check the ROM folder in *Settings > ROMs*, then
 use *Refresh ROM list* from the menu.
