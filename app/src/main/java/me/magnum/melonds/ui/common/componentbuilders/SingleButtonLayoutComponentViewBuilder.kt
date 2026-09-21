@@ -32,6 +32,12 @@ class SingleButtonLayoutComponentViewBuilder(private val layoutComponent: Layout
             LayoutComponent.BUTTON_QUICK_LOAD -> R.drawable.button_quick_load
             LayoutComponent.BUTTON_REWIND -> R.drawable.button_rewind
             LayoutComponent.BUTTON_MICROPHONE_TOGGLE -> R.drawable.button_microphone
+            // [KHMM]
+            LayoutComponent.KH_BUTTON_LOCK_ON -> R.drawable.kh_button_lock_on
+            LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT -> R.drawable.kh_button_switch_target_left
+            LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT -> R.drawable.kh_button_switch_target_right
+            LayoutComponent.KH_BUTTON_HUD_TOGGLE -> R.drawable.kh_button_hud
+            LayoutComponent.KH_BUTTON_MAP_TOGGLE -> R.drawable.kh_button_map
             else -> -1
         }
     }

@@ -410,6 +410,7 @@
     <string name="input_kh_command_menu_right">KH: Command Menu - Select</string>
     <string name="input_kh_command_menu_up">KH: Command Menu - Up</string>
     <string name="input_kh_command_menu_down">KH: Command Menu - Down</string>
+    <string name="input_kh_command_menu">KH: Command Menu</string>
     <string name="input_kh_hud_toggle">KH: HUD Toggle</string>
     <string name="input_kh_fullscreen_map_toggle">KH: Fullscreen Map Toggle</string>
     <string name="kh_recommended_bindings_button">KH layout</string>

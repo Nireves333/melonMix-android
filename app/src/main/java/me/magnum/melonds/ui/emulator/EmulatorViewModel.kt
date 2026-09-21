@@ -152,6 +152,11 @@ class EmulatorViewModel @Inject constructor(
     private val _currentFps = MutableStateFlow<Int?>(null)
     val currentFps = _currentFps.asStateFlow()
 
+    // [KHMM] whether the KH plugin drives the loaded game (KH gamecode + enhanced graphics on
+    // + OpenGL). Gates the KH touch components in RuntimeLayoutView.
+    private val _khTouchControlsEnabled = MutableStateFlow(false)
+    val khTouchControlsEnabled = _khTouchControlsEnabled.asStateFlow()
+
     // [KHMM] KH pause-menu overlay state. The composite hides the game's native pause menu;
     // the emulator mirrors its content/cursor and we draw the replacement in Compose.
     private val _khPauseMenu = MutableStateFlow<KhPauseMenuState?>(null)
@@ -688,6 +693,7 @@ class EmulatorViewModel @Inject constructor(
         _secondaryScreenBackground.value = RuntimeBackground.None
         _layout.value = null
         uiLayoutProvider.setKhTopScreenOnly(false) // [KHMM]
+        _khTouchControlsEnabled.value = false // [KHMM]
     }
 
     // [KHMM] Drive the automatic single-screen (top-screen-only) layout: active only while the
@@ -712,7 +718,10 @@ class EmulatorViewModel @Inject constructor(
                 settingsRepository.getVideoRenderer(),
                 settingsRepository.getKhSingleScreenMode(),
             ) { enabled, renderer, singleScreen ->
-                enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL && singleScreen
+                val khPluginActive = enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL
+                // KH touch components work whenever the plugin is active, single-screen or not
+                _khTouchControlsEnabled.value = khPluginActive
+                khPluginActive && singleScreen
             }.collect {
                 uiLayoutProvider.setKhTopScreenOnly(it)
             }

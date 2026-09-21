@@ -465,6 +465,15 @@ class EmulatorActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // [KHMM] KH touch components only show while the KH plugin drives the game
+                viewModel.khTouchControlsEnabled.collect {
+                    binding.viewLayoutControls.setKhControlsEnabled(it)
+                    presentation?.layoutView?.setKhControlsEnabled(it)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.mainScreenBackground.collectLatest {
                     mainScreenRenderer.setBackground(it)
                 }
@@ -708,6 +717,7 @@ class EmulatorActivity : AppCompatActivity() {
                     setLayoutComponentToggleState(LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE, frontendInputHandler.fastForwardEnabled)
                     setLayoutComponentToggleState(LayoutComponent.BUTTON_MICROPHONE_TOGGLE, frontendInputHandler.microphoneEnabled)
                     setConnectedControllersState(connectedControllerManager.controllersState.value)
+                    setKhControlsEnabled(viewModel.khTouchControlsEnabled.value) // [KHMM]
                 }
 
                 updateRendererConfiguration(viewModel.runtimeRendererConfiguration.value)

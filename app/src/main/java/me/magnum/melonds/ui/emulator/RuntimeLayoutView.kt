@@ -14,6 +14,7 @@ import me.magnum.melonds.ui.emulator.input.ButtonsInputHandler
 import me.magnum.melonds.ui.emulator.input.DpadInputHandler
 import me.magnum.melonds.ui.emulator.input.FrontendInputHandler
 import me.magnum.melonds.ui.emulator.input.IInputListener
+import me.magnum.melonds.ui.emulator.input.KhCommandMenuInputHandler
 import me.magnum.melonds.ui.emulator.input.SingleButtonInputHandler
 import me.magnum.melonds.ui.emulator.input.TouchscreenInputHandler
 import me.magnum.melonds.ui.emulator.input.view.ToggleableImageView
@@ -34,6 +35,8 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     private var isSoftInputVisible = true
     private var areScreensSwapped = false
     private var connectedControllersState: ConnectedControllersState = ConnectedControllersState.NoControllers
+    // [KHMM] whether the KH plugin drives the loaded game; KH touch components are hidden otherwise
+    private var khControlsEnabled = false
 
     fun setFrontendInputHandler(frontendInputHandler: FrontendInputHandler) {
         this.frontendInputHandler = frontendInputHandler
@@ -48,6 +51,14 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     fun setConnectedControllersState(state: ConnectedControllersState) {
         connectedControllersState = state
         updateVisibility()
+    }
+
+    // [KHMM]
+    fun setKhControlsEnabled(enabled: Boolean) {
+        if (khControlsEnabled != enabled) {
+            khControlsEnabled = enabled
+            updateVisibility()
+        }
     }
 
     fun toggleSoftInputVisibility() {
@@ -97,6 +108,13 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.BUTTON_SELECT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.SELECT, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.BUTTON_START)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.START, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.BUTTON_HINGE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.HINGE, enableHapticFeedback, touchVibrator))
+            // [KHMM] KH touch controls; MelonTouchHandler routes these to the addon-key channel
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_LOCK_ON)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_LOCK_ON, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_SWITCH_TARGET_LEFT, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_SWITCH_TARGET_RIGHT, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_COMMAND_MENU)?.view?.setOnTouchListener(KhCommandMenuInputHandler(it, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_HUD_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_HUD_TOGGLE, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
         }
         frontendInputHandler?.let {
             getLayoutComponentView(LayoutComponent.BUTTON_RESET)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.RESET, enableHapticFeedback, touchVibrator))
@@ -147,7 +165,7 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
                         LayoutComponent.BUTTON_R,
                         LayoutComponent.BUTTON_START,
                         LayoutComponent.BUTTON_SELECT
-                    )
+                    ) + LayoutComponent.entries.filter { it.isKhComponent() } // [KHMM] KH actions live on the controller too
                 }
             }
             SoftInputBehaviour.HIDE_ALL_BUTTONS_ASSIGNED_TO_CONNECTED_CONTROLLERS -> when(currentConnectedControllersState) {
@@ -162,6 +180,11 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
                 }
             }
             SoftInputBehaviour.ALWAYS_INVISIBLE -> LayoutComponent.entries.toList()
+        }
+
+        // [KHMM] KH touch components only exist for a KH-plugin-driven game
+        if (!khControlsEnabled) {
+            hiddenComponents = hiddenComponents + LayoutComponent.entries.filter { it.isKhComponent() }
         }
 
         if (!isSoftInputVisible) {

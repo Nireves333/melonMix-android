@@ -1,5 +1,6 @@
 package me.magnum.melonds.ui.layouteditor
 
+import me.magnum.melonds.R
 import me.magnum.melonds.domain.model.layout.LayoutComponent
 import me.magnum.melonds.ui.common.LayoutComponentViewBuilder
 import me.magnum.melonds.ui.common.LayoutComponentViewBuilderFactory
@@ -15,6 +16,8 @@ class EditorLayoutComponentViewBuilderFactory : LayoutComponentViewBuilderFactor
                 LayoutComponent.BOTTOM_SCREEN -> BottomScreenLayoutComponentViewBuilder()
                 LayoutComponent.DPAD -> EditorBackgroundLayoutComponentViewBuilder(DpadLayoutComponentViewBuilder())
                 LayoutComponent.BUTTONS -> EditorBackgroundLayoutComponentViewBuilder(ButtonsLayoutComponentViewBuilder())
+                // [KHMM]
+                LayoutComponent.KH_COMMAND_MENU -> EditorBackgroundLayoutComponentViewBuilder(DpadLayoutComponentViewBuilder(R.drawable.kh_command_menu))
                 else -> EditorBackgroundLayoutComponentViewBuilder(SingleButtonLayoutComponentViewBuilder(layoutComponent))
             }
 

@@ -160,7 +160,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
                 PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            )
+            ) + buildKhControls(width, dpadView, buttonsView, utilityButtonsTop)
         )
     }
 
@@ -218,7 +218,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
                 PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            )
+            ) + buildKhControls(width, dpadView, buttonsView, safeTop)
         )
     }
 
@@ -271,7 +271,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 PositionedLayoutComponent(Rect(width / 2 + spacing4dp + (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
                 PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            )
+            ) + buildKhControls(width, dpadView, buttonsView, mainFold.foldBounds.bottom)
         )
     }
 
@@ -335,7 +335,37 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.x - smallButtonsSize - spacing8dp, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.right + smallButtonsSize + spacing8dp, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.right + spacing8dp * 2, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            )
+            ) + buildKhControls(width, dpadView, buttonsView, safeTop)
+        )
+    }
+
+    /**
+     * [KHMM] KH touch controls, positioned relative to the stock movement/button clusters.
+     * Part of every default layout; RuntimeLayoutView hides them unless the KH plugin drives
+     * the loaded game.
+     */
+    private fun buildKhControls(width: Int, dpadRect: Rect, buttonsRect: Rect, utilityRowTop: Int): List<PositionedLayoutComponent> {
+        val khClusterSize = screenUnitsConverter.dpToPixels(100f).toInt()
+        val lockOnSize = screenUnitsConverter.dpToPixels(50f).toInt()
+        val smallButtonsSize = screenUnitsConverter.dpToPixels(40f).toInt()
+        val spacing4dp = screenUnitsConverter.dpToPixels(4f).toInt()
+
+        // Command menu cluster above the d-pad; lock-on flanked by the switch-target pair above
+        // the ABXY cluster; HUD/map toggles extend the small utility row outward
+        val commandMenuRect = Rect(dpadRect.x, dpadRect.y - spacing4dp * 2 - khClusterSize, khClusterSize, khClusterSize)
+        val lockOnY = buttonsRect.y - spacing4dp * 2 - lockOnSize
+        val switchY = lockOnY + (lockOnSize - smallButtonsSize) / 2
+        val switchRightX = buttonsRect.x + buttonsRect.width - smallButtonsSize
+        val lockOnX = switchRightX - spacing4dp - lockOnSize
+        val switchLeftX = lockOnX - spacing4dp - smallButtonsSize
+
+        return listOf(
+            PositionedLayoutComponent(commandMenuRect, LayoutComponent.KH_COMMAND_MENU),
+            PositionedLayoutComponent(Rect(lockOnX, lockOnY, lockOnSize, lockOnSize), LayoutComponent.KH_BUTTON_LOCK_ON),
+            PositionedLayoutComponent(Rect(switchLeftX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT),
+            PositionedLayoutComponent(Rect(switchRightX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT),
+            PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize * 3 - (spacing4dp * 2.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_HUD_TOGGLE),
+            PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize * 2 + (spacing4dp * 2.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_MAP_TOGGLE),
         )
     }
 

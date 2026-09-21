@@ -23,5 +23,12 @@ fun getLayoutComponentName(layoutComponent: LayoutComponent): Int {
         LayoutComponent.BUTTON_QUICK_SAVE -> R.string.input_quick_save
         LayoutComponent.BUTTON_QUICK_LOAD -> R.string.input_quick_load
         LayoutComponent.BUTTON_REWIND -> R.string.rewind
+        // [KHMM]
+        LayoutComponent.KH_BUTTON_LOCK_ON -> R.string.input_kh_lock_on
+        LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT -> R.string.input_kh_switch_target_left
+        LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT -> R.string.input_kh_switch_target_right
+        LayoutComponent.KH_COMMAND_MENU -> R.string.input_kh_command_menu
+        LayoutComponent.KH_BUTTON_HUD_TOGGLE -> R.string.input_kh_hud_toggle
+        LayoutComponent.KH_BUTTON_MAP_TOGGLE -> R.string.input_kh_fullscreen_map_toggle
     }
 }
