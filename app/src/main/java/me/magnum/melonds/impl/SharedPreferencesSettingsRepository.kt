@@ -94,6 +94,7 @@ class SharedPreferencesSettingsRepository(
         preferences.registerOnSharedPreferenceChangeListener(this)
         setDefaultThemeIfRequired()
         setDefaultMacAddressIfRequired()
+        migrateKhCameraSpeedIfRequired()
 
         // [KHMM] 6 sources exceed the typed combine overloads, so nest two typed combines
         renderConfigurationFlow = combine(
@@ -341,6 +342,20 @@ class SharedPreferencesSettingsRepository(
     override fun getKhBgmVolume(): Flow<Int> {
         return getOrCreatePreferenceSharedFlow("kh_bgm_volume") {
             preferences.getInt("kh_bgm_volume", 100)
+        }
+    }
+
+    // [KHMM] one-time carry-over of a stored camera speed from the old 1.0-4.0 scale onto
+    // the 1.0-6.0 scale (same actual speed = +4 half-units). Done lazily here because the
+    // versioned migration framework never runs in this fork (last_version defaults above
+    // our restarted versionCodes).
+    private fun migrateKhCameraSpeedIfRequired() {
+        if (!preferences.contains("kh_camera_speed_2")) {
+            preferences.getString("kh_camera_speed", null)?.toIntOrNull()?.let {
+                preferences.edit {
+                    putString("kh_camera_speed_2", (it + 4).coerceIn(2, 12).toString())
+                }
+            }
         }
     }
 

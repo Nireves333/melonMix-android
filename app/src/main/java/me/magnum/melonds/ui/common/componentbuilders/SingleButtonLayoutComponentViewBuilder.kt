@@ -38,6 +38,7 @@ class SingleButtonLayoutComponentViewBuilder(private val layoutComponent: Layout
             LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT -> R.drawable.kh_button_switch_target_right
             LayoutComponent.KH_BUTTON_HUD_TOGGLE -> R.drawable.kh_button_hud
             LayoutComponent.KH_BUTTON_MAP_TOGGLE -> R.drawable.kh_button_map
+            LayoutComponent.KH_BUTTON_SHORTCUT -> R.drawable.kh_button_shortcut
             else -> -1
         }
     }

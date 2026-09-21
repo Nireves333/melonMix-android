@@ -31,7 +31,10 @@ enum class LayoutComponent(val matchingInputs: List<Input>) {
     KH_BUTTON_MAP_TOGGLE(listOf(Input.KH_FULLSCREEN_MAP_TOGGLE)),
     KH_CAMERA_STICK(listOf(Input.KH_CAMERA_RIGHT, Input.KH_CAMERA_LEFT, Input.KH_CAMERA_DOWN, Input.KH_CAMERA_UP)),
     // [KHMM] virtual stick quantized to the DS d-pad — generic, works in any game
-    MOVEMENT_STICK(listOf(Input.UP, Input.DOWN, Input.LEFT, Input.RIGHT));
+    MOVEMENT_STICK(listOf(Input.UP, Input.DOWN, Input.LEFT, Input.RIGHT)),
+    // [KHMM] sends plain DS L; replaces the stock L button in KH mode, where L's only job
+    // is holding the shortcut panel open
+    KH_BUTTON_SHORTCUT(listOf(Input.L));
 
     fun isScreen(): Boolean {
         return this == TOP_SCREEN || this == BOTTOM_SCREEN

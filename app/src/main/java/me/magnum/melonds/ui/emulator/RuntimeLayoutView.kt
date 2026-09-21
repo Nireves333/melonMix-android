@@ -129,6 +129,7 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.KH_COMMAND_MENU)?.view?.setOnTouchListener(KhCommandMenuInputHandler(it, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_HUD_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_HUD_TOGGLE, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_SHORTCUT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.L, enableHapticFeedback, touchVibrator))
             // [KHMM] sticks track and draw themselves; only the value listeners attach here
             (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.listener = KhStickDpadAdapter(it)
             val khCameraListener = it as? IKhCameraListener
@@ -188,7 +189,8 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
                         LayoutComponent.BUTTON_R,
                         LayoutComponent.BUTTON_START,
                         LayoutComponent.BUTTON_SELECT,
-                        LayoutComponent.MOVEMENT_STICK
+                        LayoutComponent.MOVEMENT_STICK,
+                        LayoutComponent.KH_BUTTON_SHORTCUT
                     ) + LayoutComponent.entries.filter { it.isKhComponent() } // [KHMM] KH actions live on the controller too
                 }
             }
@@ -211,9 +213,11 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
         // (DS R = lock-on, neither game uses the lid); without it, classic DS controls only.
         hiddenComponents = if (khControlsEnabled) {
             hiddenComponents + LayoutComponent.DPAD + LayoutComponent.BUTTON_R + LayoutComponent.BUTTON_HINGE +
+                    LayoutComponent.BUTTON_L + // replaced by the KH shortcut button (same DS input)
                     if (khSingleScreenActive) listOf(LayoutComponent.BUTTON_SWAP_SCREENS) else emptyList()
         } else {
-            hiddenComponents + LayoutComponent.entries.filter { it.isKhComponent() } + LayoutComponent.MOVEMENT_STICK
+            hiddenComponents + LayoutComponent.entries.filter { it.isKhComponent() } +
+                    LayoutComponent.MOVEMENT_STICK + LayoutComponent.KH_BUTTON_SHORTCUT
         }
 
         if (!isSoftInputVisible) {

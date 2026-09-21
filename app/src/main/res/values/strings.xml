@@ -413,6 +413,7 @@
     <string name="input_kh_command_menu">KH: Command Menu</string>
     <string name="input_kh_camera_stick">KH: Camera Stick</string>
     <string name="input_movement_stick">Movement Stick</string>
+    <string name="input_kh_shortcut">KH: Shortcuts (L)</string>
     <string name="input_kh_hud_toggle">KH: HUD Toggle</string>
     <string name="input_kh_fullscreen_map_toggle">KH: Fullscreen Map Toggle</string>
     <string name="kh_recommended_bindings_button">KH layout</string>
