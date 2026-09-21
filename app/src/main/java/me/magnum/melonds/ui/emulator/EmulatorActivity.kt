@@ -514,6 +514,15 @@ class EmulatorActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // [KHMM] swap-screens is hidden while the forced single-screen layout is active
+                viewModel.khSingleScreenActive.collect {
+                    binding.viewLayoutControls.setKhSingleScreenActive(it)
+                    presentation?.layoutView?.setKhSingleScreenActive(it)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.mainScreenBackground.collectLatest {
                     mainScreenRenderer.setBackground(it)
                 }
@@ -758,6 +767,7 @@ class EmulatorActivity : AppCompatActivity() {
                     setLayoutComponentToggleState(LayoutComponent.BUTTON_MICROPHONE_TOGGLE, frontendInputHandler.microphoneEnabled)
                     setConnectedControllersState(connectedControllerManager.controllersState.value)
                     setKhControlsEnabled(viewModel.khTouchControlsEnabled.value) // [KHMM]
+                    setKhSingleScreenActive(viewModel.khSingleScreenActive.value) // [KHMM]
                 }
 
                 updateRendererConfiguration(viewModel.runtimeRendererConfiguration.value)

@@ -25,6 +25,7 @@ import me.magnum.melonds.ui.emulator.model.ConnectedControllersState
 import me.magnum.melonds.ui.emulator.model.RuntimeInputLayoutConfiguration
 import me.magnum.melonds.ui.layouteditor.model.LayoutTarget
 import javax.inject.Inject
+import kotlin.math.sqrt
 
 @AndroidEntryPoint
 class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutView(context, attrs) {
@@ -40,6 +41,8 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     private var connectedControllersState: ConnectedControllersState = ConnectedControllersState.NoControllers
     // [KHMM] whether the KH plugin drives the loaded game; KH touch components are hidden otherwise
     private var khControlsEnabled = false
+    // [KHMM] whether the forced single-screen layout is active (swap-screens is meaningless then)
+    private var khSingleScreenActive = false
 
     fun setFrontendInputHandler(frontendInputHandler: FrontendInputHandler) {
         this.frontendInputHandler = frontendInputHandler
@@ -60,6 +63,14 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     fun setKhControlsEnabled(enabled: Boolean) {
         if (khControlsEnabled != enabled) {
             khControlsEnabled = enabled
+            updateVisibility()
+        }
+    }
+
+    // [KHMM]
+    fun setKhSingleScreenActive(active: Boolean) {
+        if (khSingleScreenActive != active) {
+            khSingleScreenActive = active
             updateVisibility()
         }
     }
@@ -122,7 +133,10 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.listener = KhStickDpadAdapter(it)
             val khCameraListener = it as? IKhCameraListener
             (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.listener = KhStickView.Listener { x, y ->
-                khCameraListener?.onKhCameraAxes(x, y)
+                // Squared response: a touch stick reaches full deflection far more easily than
+                // a physical one, so give fine control near center at the same max speed
+                val magnitude = sqrt(x * x + y * y)
+                khCameraListener?.onKhCameraAxes(x * magnitude, y * magnitude)
             }
         }
         frontendInputHandler?.let {
@@ -192,9 +206,14 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             SoftInputBehaviour.ALWAYS_INVISIBLE -> LayoutComponent.entries.toList()
         }
 
-        // [KHMM] KH touch components only exist for a KH-plugin-driven game
-        if (!khControlsEnabled) {
-            hiddenComponents = hiddenComponents + LayoutComponent.entries.filter { it.isKhComponent() }
+        // [KHMM] each mode shows its own console's controls: with the KH plugin active the
+        // movement stick replaces the d-pad and the stock controls it makes redundant go away
+        // (DS R = lock-on, neither game uses the lid); without it, classic DS controls only.
+        hiddenComponents = if (khControlsEnabled) {
+            hiddenComponents + LayoutComponent.DPAD + LayoutComponent.BUTTON_R + LayoutComponent.BUTTON_HINGE +
+                    if (khSingleScreenActive) listOf(LayoutComponent.BUTTON_SWAP_SCREENS) else emptyList()
+        } else {
+            hiddenComponents + LayoutComponent.entries.filter { it.isKhComponent() } + LayoutComponent.MOVEMENT_STICK
         }
 
         if (!isSoftInputVisible) {

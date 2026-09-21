@@ -157,6 +157,11 @@ class EmulatorViewModel @Inject constructor(
     private val _khTouchControlsEnabled = MutableStateFlow(false)
     val khTouchControlsEnabled = _khTouchControlsEnabled.asStateFlow()
 
+    // [KHMM] whether the forced single-screen (top-only) layout is active; the swap-screens
+    // soft button is hidden while it is (there is only one screen)
+    private val _khSingleScreenActive = MutableStateFlow(false)
+    val khSingleScreenActive = _khSingleScreenActive.asStateFlow()
+
     // [KHMM] KH pause-menu overlay state. The composite hides the game's native pause menu;
     // the emulator mirrors its content/cursor and we draw the replacement in Compose.
     private val _khPauseMenu = MutableStateFlow<KhPauseMenuState?>(null)
@@ -694,6 +699,7 @@ class EmulatorViewModel @Inject constructor(
         _layout.value = null
         uiLayoutProvider.setKhTopScreenOnly(false) // [KHMM]
         _khTouchControlsEnabled.value = false // [KHMM]
+        _khSingleScreenActive.value = false // [KHMM]
     }
 
     // [KHMM] Drive the automatic single-screen (top-screen-only) layout: active only while the
@@ -723,6 +729,7 @@ class EmulatorViewModel @Inject constructor(
                 _khTouchControlsEnabled.value = khPluginActive
                 khPluginActive && singleScreen
             }.collect {
+                _khSingleScreenActive.value = it
                 uiLayoutProvider.setKhTopScreenOnly(it)
             }
         }

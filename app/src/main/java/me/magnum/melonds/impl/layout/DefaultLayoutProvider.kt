@@ -158,8 +158,8 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 + spacing4dp / 2, height - safeBottom - smallButtonsSize, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_START),
                 PositionedLayoutComponent(Rect(width / 2 - (smallButtonsSize * 2.0 + spacing4dp * 1.5).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_HINGE),
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
-                PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
-                PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
+                // (No microphone toggle: the mic source is pinned to none in this app)
+                PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
             ) + buildKhControls(width, dpadView, buttonsView, utilityButtonsTop)
         )
     }
@@ -216,8 +216,8 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect((width + spacing4dp) / 2, height - safeBottom - smallButtonsSize, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_START),
                 PositionedLayoutComponent(Rect(width / 2 - (smallButtonsSize * 2.0 + spacing4dp * 1.5).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_HINGE),
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
-                PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
-                PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
+                // (No microphone toggle: the mic source is pinned to none in this app)
+                PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
             ) + buildKhControls(width, dpadView, buttonsView, safeTop)
         )
     }
@@ -269,8 +269,8 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 + spacing4dp / 2, height - safeBottom - smallButtonsSize, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_START),
                 PositionedLayoutComponent(Rect(width / 2 - (smallButtonsSize * 2.0 + spacing4dp * 1.5).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_HINGE),
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
-                PositionedLayoutComponent(Rect(width / 2 + spacing4dp + (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
-                PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
+                // (No microphone toggle: the mic source is pinned to none in this app)
+                PositionedLayoutComponent(Rect(width / 2 + spacing4dp + (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
             ) + buildKhControls(width, dpadView, buttonsView, mainFold.foldBounds.bottom)
         )
     }
@@ -333,7 +333,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.right + spacing8dp, height - safeBottom - smallButtonsSize, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_START),
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.x - smallButtonsSize * 2 - spacing8dp * 2, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_HINGE),
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.x - smallButtonsSize - spacing8dp, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
-                PositionedLayoutComponent(Rect(mainFold.foldBounds.right + smallButtonsSize + spacing8dp, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_MICROPHONE_TOGGLE),
+                // (No microphone toggle: the mic source is pinned to none in this app)
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.right + spacing8dp * 2, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
             ) + buildKhControls(width, dpadView, buttonsView, safeTop)
         )
@@ -363,13 +363,16 @@ class DefaultLayoutProvider(
         val switchLeftX = lockOnX - spacing4dp - smallButtonsSize
 
         return listOf(
+            // Movement stick takes the d-pad's spot (the d-pad hides while the KH plugin is
+            // active, the stick hides when it is not — one movement control either way)
+            PositionedLayoutComponent(dpadRect, LayoutComponent.MOVEMENT_STICK),
             PositionedLayoutComponent(commandMenuRect, LayoutComponent.KH_COMMAND_MENU),
             PositionedLayoutComponent(cameraStickRect, LayoutComponent.KH_CAMERA_STICK),
             PositionedLayoutComponent(Rect(lockOnX, lockOnY, lockOnSize, lockOnSize), LayoutComponent.KH_BUTTON_LOCK_ON),
             PositionedLayoutComponent(Rect(switchLeftX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT),
             PositionedLayoutComponent(Rect(switchRightX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT),
             PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize * 3 - (spacing4dp * 2.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_HUD_TOGGLE),
-            PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize * 2 + (spacing4dp * 2.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_MAP_TOGGLE),
+            PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_MAP_TOGGLE),
         )
     }
 
