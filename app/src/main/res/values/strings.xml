@@ -658,9 +658,10 @@
         <item>Device microphone</item>
     </string-array>
 
-    <!-- [KHMM] camera speeds in half-steps; values are half-units (2-8 = 1.0-4.0). The
-         plugin's sensitivity is an integer bit-shift (each whole step doubles the speed),
-         so half-steps are synthesized natively: next shift + stick range scaled to 75%. -->
+    <!-- [KHMM] camera speeds in half-steps; values are half-units (2-12 = 1.0-6.0). Speeds
+         from 3 up match the desktop 1-4 shift scale (3 here = desktop 1, 6 = desktop 4;
+         each whole step doubles the speed, half-steps are synthesized natively via a 75%
+         stick-range scale); 1-2.5 extend the same curve below the desktop minimum. -->
     <string-array name="kh_camera_speed_options">
         <item>1 (slowest)</item>
         <item>1.5</item>
@@ -668,7 +669,11 @@
         <item>2.5</item>
         <item>3</item>
         <item>3.5</item>
-        <item>4 (fastest)</item>
+        <item>4</item>
+        <item>4.5</item>
+        <item>5</item>
+        <item>5.5</item>
+        <item>6 (fastest)</item>
     </string-array>
 
     <string-array name="kh_camera_speed_values">
@@ -679,6 +684,10 @@
         <item>6</item>
         <item>7</item>
         <item>8</item>
+        <item>9</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
     </string-array>
 
     <string-array name="soft_input_behaviour_options">

@@ -371,7 +371,9 @@ class DefaultLayoutProvider(
             PositionedLayoutComponent(Rect(lockOnX, lockOnY, lockOnSize, lockOnSize), LayoutComponent.KH_BUTTON_LOCK_ON),
             PositionedLayoutComponent(Rect(switchLeftX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT),
             PositionedLayoutComponent(Rect(switchRightX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT),
-            PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize * 3 - (spacing4dp * 2.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_HUD_TOGGLE),
+            // HUD shares the lid toggle's slot: one is KH-mode-only, the other DS-mode-only,
+            // so the utility row stays gapless in both modes
+            PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize * 2 - (spacing4dp * 1.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_HUD_TOGGLE),
             PositionedLayoutComponent(Rect(width / 2 + smallButtonsSize + (spacing4dp * 1.5).toInt(), utilityRowTop, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_MAP_TOGGLE),
         )
     }
