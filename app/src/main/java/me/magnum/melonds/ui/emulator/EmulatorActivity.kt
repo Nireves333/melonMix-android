@@ -47,6 +47,9 @@ import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
 import com.squareup.picasso.Picasso
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import me.magnum.melonds.domain.model.Input
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
@@ -202,6 +205,8 @@ class EmulatorActivity : AppCompatActivity() {
     private lateinit var choreographerFrameRenderer: ChoreographerFrameRenderer
     private lateinit var mainScreenRenderer: DSRenderer
     private lateinit var melonTouchHandler: MelonTouchHandler
+    // [KHMM] serializes touch-injected DS key presses for the KH menu overlays
+    private var khMenuTapJob: Job? = null
     private lateinit var nativeInputListener: INativeInputListener
     // [KHMM] cutscene skip menu SFX (created lazily — only KH games ever fire the sound events)
     private val khMenuSoundPlayerDelegate = lazy { KhMenuSoundPlayer(this) }
@@ -292,6 +297,23 @@ class EmulatorActivity : AppCompatActivity() {
             presentation?.setPauseOverlayVisibility(true)
         }
     )
+
+    /**
+     * [KHMM] Injects a short DS key press so taps on the KH menu overlays (pause menu, cutscene
+     * skip menu) can drive the game's native menu logic — the same input path the touch buttons
+     * use. The hold spans several frames (and several 8ms parked-loop ticks during an HD video)
+     * so the press registers; overlapping taps are dropped instead of queued.
+     */
+    private fun khInjectMenuKey(input: Input) {
+        if (khMenuTapJob?.isActive == true) {
+            return
+        }
+        khMenuTapJob = lifecycleScope.launch {
+            melonTouchHandler.onKeyPress(input)
+            delay(100)
+            melonTouchHandler.onKeyReleased(input)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -389,6 +411,13 @@ class EmulatorActivity : AppCompatActivity() {
                     paused = khPauseMenuState.value != null || khEmulatorPaused.value,
                     onEnded = { MelonEmulator.onKhCutsceneEnded() },
                     onFailed = { MelonEmulator.onKhCutsceneFailed(it) },
+                    onTapped = {
+                        // [KHMM] the video covers the touch layout; a tap stands in for Start
+                        // and opens the skip menu (no-op while the menu is already up)
+                        if (khPauseMenuState.value == null) {
+                            khInjectMenuKey(Input.START)
+                        }
+                    },
                 )
 
                 // Full-window while an HD video is up (the skip menu draws over the
@@ -396,6 +425,17 @@ class EmulatorActivity : AppCompatActivity() {
                 KhPauseMenuUi(
                     state = khPauseMenuState.value,
                     menuBounds = if (khCutsceneState.value != null) null else khTopScreenRect.value,
+                    onEntryTapped = { index ->
+                        // [KHMM] tap the highlighted entry to confirm, another entry to move
+                        // the cursor one step toward it (the game echoes the new selection back)
+                        khPauseMenuState.value?.let {
+                            when {
+                                index == it.selection -> khInjectMenuKey(Input.A)
+                                index > it.selection -> khInjectMenuKey(Input.DOWN)
+                                else -> khInjectMenuKey(Input.UP)
+                            }
+                        }
+                    },
                 )
 
                 RewindWindowUi(

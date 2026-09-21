@@ -3,6 +3,7 @@ package me.magnum.melonds.ui.emulator.ui
 import android.net.Uri
 import android.view.SurfaceView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -60,7 +62,8 @@ import java.io.File
  * player calls because Compose's frame clock stops once the activity does, so a recomposition
  * can't be relied on to deliver the pause. [onEnded] / [onFailed] must be reported back to the
  * emulator so the plugin can resume the game (or blacklist the video and fall back to the DS
- * cutscene).
+ * cutscene). [onTapped] fires on a tap anywhere on the video — the video covers the soft input
+ * layout, so this is the touch player's only way to reach the skip menu.
  */
 @Composable
 fun KhCutscenePlayerUi(
@@ -68,6 +71,7 @@ fun KhCutscenePlayerUi(
     paused: Boolean,
     onEnded: () -> Unit,
     onFailed: (String) -> Unit,
+    onTapped: () -> Unit,
 ) {
     if (state == null) {
         return
@@ -169,10 +173,14 @@ fun KhCutscenePlayerUi(
         }
     }
 
+    val currentOnTapped by rememberUpdatedState(onTapped)
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            .pointerInput(Unit) {
+                detectTapGestures { currentOnTapped() }
+            },
         contentAlignment = Alignment.Center,
     ) {
         BoxWithConstraints(modifier = Modifier.aspectRatio(16f / 9f)) {
