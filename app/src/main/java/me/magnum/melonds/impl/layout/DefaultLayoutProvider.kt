@@ -160,7 +160,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 // (No microphone toggle: the mic source is pinned to none in this app)
                 PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), utilityButtonsTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            ) + buildKhControls(width, dpadView, buttonsView, utilityButtonsTop, Rect(safeLeft, utilityButtonsTop, lrButtonsSize, lrButtonsSize))
+            ) + buildKhControls(width, dpadView, buttonsView, utilityButtonsTop)
         )
     }
 
@@ -218,7 +218,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 // (No microphone toggle: the mic source is pinned to none in this app)
                 PositionedLayoutComponent(Rect(width / 2 + (spacing4dp / 2.0).toInt(), safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            ) + buildKhControls(width, dpadView, buttonsView, safeTop, Rect(safeLeft, safeTop, lrButtonsSize, lrButtonsSize))
+            ) + buildKhControls(width, dpadView, buttonsView, safeTop)
         )
     }
 
@@ -271,7 +271,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(width / 2 - smallButtonsSize - (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 // (No microphone toggle: the mic source is pinned to none in this app)
                 PositionedLayoutComponent(Rect(width / 2 + spacing4dp + (spacing4dp / 2.0).toInt(), mainFold.foldBounds.bottom, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            ) + buildKhControls(width, dpadView, buttonsView, mainFold.foldBounds.bottom, Rect(safeLeft, mainFold.foldBounds.bottom, lrButtonsSize, lrButtonsSize))
+            ) + buildKhControls(width, dpadView, buttonsView, mainFold.foldBounds.bottom)
         )
     }
 
@@ -335,7 +335,7 @@ class DefaultLayoutProvider(
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.x - smallButtonsSize - spacing8dp, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT),
                 // (No microphone toggle: the mic source is pinned to none in this app)
                 PositionedLayoutComponent(Rect(mainFold.foldBounds.right + spacing8dp * 2, safeTop, smallButtonsSize, smallButtonsSize), LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE),
-            ) + buildKhControls(width, dpadView, buttonsView, safeTop, Rect(safeLeft, safeTop, lrButtonsSize, lrButtonsSize))
+            ) + buildKhControls(width, dpadView, buttonsView, safeTop)
         )
     }
 
@@ -344,17 +344,19 @@ class DefaultLayoutProvider(
      * Part of every default layout; RuntimeLayoutView hides them unless the KH plugin drives
      * the loaded game.
      */
-    private fun buildKhControls(width: Int, dpadRect: Rect, buttonsRect: Rect, utilityRowTop: Int, lButtonRect: Rect): List<PositionedLayoutComponent> {
+    private fun buildKhControls(width: Int, dpadRect: Rect, buttonsRect: Rect, utilityRowTop: Int): List<PositionedLayoutComponent> {
         val khClusterSize = screenUnitsConverter.dpToPixels(100f).toInt()
         val lockOnSize = screenUnitsConverter.dpToPixels(50f).toInt()
         val smallButtonsSize = screenUnitsConverter.dpToPixels(40f).toInt()
         val spacing4dp = screenUnitsConverter.dpToPixels(4f).toInt()
 
-        // Command menu cluster above the d-pad; lock-on flanked by the switch-target pair above
-        // the ABXY cluster; HUD/map toggles extend the small utility row outward
-        val commandMenuRect = Rect(dpadRect.x, dpadRect.y - spacing4dp * 2 - khClusterSize, khClusterSize, khClusterSize)
+        // Left-edge column stacked flush on the movement stick (the user-tuned RG505
+        // arrangement): shortcut button over command strip over stick. Lock-on flanked by
+        // the switch-target pair above the ABXY cluster; HUD/map extend the utility row.
+        val commandMenuRect = Rect(dpadRect.x, dpadRect.y - khClusterSize, khClusterSize, khClusterSize)
+        val shortcutRect = Rect(dpadRect.x, commandMenuRect.y - lockOnSize, lockOnSize, lockOnSize)
         // Camera stick under the right thumb: left of the ABXY cluster, bottom-aligned with it
-        val stickSize = screenUnitsConverter.dpToPixels(110f).toInt()
+        val stickSize = screenUnitsConverter.dpToPixels(122f).toInt()
         val cameraStickRect = Rect(buttonsRect.x - spacing4dp * 3 - stickSize, buttonsRect.y + buttonsRect.height - stickSize, stickSize, stickSize)
         val lockOnY = buttonsRect.y - spacing4dp * 2 - lockOnSize
         val switchY = lockOnY + (lockOnSize - smallButtonsSize) / 2
@@ -368,8 +370,7 @@ class DefaultLayoutProvider(
             PositionedLayoutComponent(dpadRect, LayoutComponent.MOVEMENT_STICK),
             PositionedLayoutComponent(commandMenuRect, LayoutComponent.KH_COMMAND_MENU),
             PositionedLayoutComponent(cameraStickRect, LayoutComponent.KH_CAMERA_STICK),
-            // Shortcut button shares the stock L's slot (they swap with the mode, same DS input)
-            PositionedLayoutComponent(lButtonRect, LayoutComponent.KH_BUTTON_SHORTCUT),
+            PositionedLayoutComponent(shortcutRect, LayoutComponent.KH_BUTTON_SHORTCUT),
             PositionedLayoutComponent(Rect(lockOnX, lockOnY, lockOnSize, lockOnSize), LayoutComponent.KH_BUTTON_LOCK_ON),
             PositionedLayoutComponent(Rect(switchLeftX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT),
             PositionedLayoutComponent(Rect(switchRightX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT),
