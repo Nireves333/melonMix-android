@@ -103,6 +103,18 @@ Some notes:
   keep bottom screen content on the bottom screen. You keep the enhancements
   (HD cutscenes, music, subtitles, controls), and both screens show in your
   normal screen layout.
+- **Touch controls**: no controller needed. On screen KH controls (Lock On,
+  Switch Target, the command menu, shortcuts, HUD, map, a movement stick and a
+  camera stick) show automatically when no controller is connected, and swap to
+  the classic DS buttons when enhanced graphics is off. During a cutscene, tap
+  the video to open the pause/skip menu; the menu entries are tappable too.
+  Every control can be moved and resized in *Input > Layouts*.
+- **KH camera sensitivity** (*Input*): camera speed for the right stick and the
+  touch camera stick, from 1 to 6 in half steps. If you used this setting before
+  1.1.0, the scale changed: your speed is the same, the number just shows 2
+  higher than it used to, and there are two new slower steps at the bottom.
+- **Touch stick deadzone** (*Input*): how far the touch sticks have to move
+  before they register, as a percentage of the stick size. Applies live.
 - **Game language** (*System*): sets the language for in-game menus, the pause
   overlay and subtitles.
 - **Save files** (*Save Files*): saves and save states can be kept in a folder of
