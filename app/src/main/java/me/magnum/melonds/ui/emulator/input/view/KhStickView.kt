@@ -24,6 +24,9 @@ class KhStickView(context: Context, private val knobFilled: Boolean) : View(cont
 
     var listener: Listener? = null
 
+    // Radial deadzone as a fraction of the stick radius; user-tunable via the input settings
+    var deadzone = DEFAULT_DEADZONE
+
     private var activePointerId = MotionEvent.INVALID_POINTER_ID
     private var stickX = 0f
     private var stickY = 0f
@@ -90,10 +93,10 @@ class KhStickView(context: Context, private val knobFilled: Boolean) : View(cont
 
         // Radial deadzone, rescaled so output ramps from 0 at the deadzone edge
         val clampedMagnitude = min(magnitude, 1f)
-        if (clampedMagnitude < DEADZONE) {
+        if (clampedMagnitude < deadzone) {
             listener?.onStickChanged(0f, 0f)
         } else {
-            val scale = (clampedMagnitude - DEADZONE) / (1f - DEADZONE) / clampedMagnitude
+            val scale = (clampedMagnitude - deadzone) / (1f - deadzone) / clampedMagnitude
             listener?.onStickChanged(x * scale, y * scale)
         }
     }
@@ -127,9 +130,9 @@ class KhStickView(context: Context, private val knobFilled: Boolean) : View(cont
     }
 
     companion object {
+        const val DEFAULT_DEADZONE = 0.10f
         private const val COLOR_NAVY = 0xFF101A3C.toInt()
         private const val COLOR_GOLD = 0xFFC9A036.toInt()
-        private const val DEADZONE = 0.15f
         private const val KNOB_RADIUS_FRACTION = 0.34f
     }
 }

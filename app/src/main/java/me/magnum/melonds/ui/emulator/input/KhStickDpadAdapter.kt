@@ -30,7 +30,10 @@ class KhStickDpadAdapter(private val inputListener: IInputListener) : KhStickVie
     }
 
     companion object {
-        private const val PRESS_THRESHOLD = 0.4f
-        private const val RELEASE_THRESHOLD = 0.3f
+        // The input is already deadzoned and rescaled by KhStickView, so these engage soon
+        // after the deadzone edge (0.4 here compounded to ~half the stick radius before any
+        // movement registered)
+        private const val PRESS_THRESHOLD = 0.22f
+        private const val RELEASE_THRESHOLD = 0.15f
     }
 }

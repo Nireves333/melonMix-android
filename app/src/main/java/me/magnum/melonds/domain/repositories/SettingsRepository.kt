@@ -53,6 +53,7 @@ interface SettingsRepository {
     fun getKhBgmVolume(): Flow<Int>
     // [KHMM] refined controls: camera-stick sensitivity (1-4, desktop default 3)
     fun getKhCameraSensitivity(): Flow<Int>
+    fun getKhStickDeadzone(): Flow<Int>
     // [KHMM] subtitles over HD replacement cutscenes (desktop DisableSubtitles, inverted)
     fun getKhShowSubtitles(): Flow<Boolean>
     fun getKhSingleScreenMode(): Flow<Boolean>

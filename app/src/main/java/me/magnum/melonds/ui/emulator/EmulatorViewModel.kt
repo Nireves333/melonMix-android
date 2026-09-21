@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -161,6 +162,9 @@ class EmulatorViewModel @Inject constructor(
     // soft button is hidden while it is (there is only one screen)
     private val _khSingleScreenActive = MutableStateFlow(false)
     val khSingleScreenActive = _khSingleScreenActive.asStateFlow()
+
+    // [KHMM] touch-stick deadzone (percent of the stick radius), applied live to the sticks
+    val khStickDeadzone = settingsRepository.getKhStickDeadzone().stateIn(viewModelScope, SharingStarted.Eagerly, 10)
 
     // [KHMM] KH pause-menu overlay state. The composite hides the game's native pause menu;
     // the emulator mirrors its content/cursor and we draw the replacement in Compose.

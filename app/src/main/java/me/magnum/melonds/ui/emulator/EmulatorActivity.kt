@@ -523,6 +523,15 @@ class EmulatorActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // [KHMM] touch-stick deadzone, live from the input settings
+                viewModel.khStickDeadzone.collect {
+                    binding.viewLayoutControls.setKhStickDeadzone(it / 100f)
+                    presentation?.layoutView?.setKhStickDeadzone(it / 100f)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.mainScreenBackground.collectLatest {
                     mainScreenRenderer.setBackground(it)
                 }
@@ -768,6 +777,7 @@ class EmulatorActivity : AppCompatActivity() {
                     setConnectedControllersState(connectedControllerManager.controllersState.value)
                     setKhControlsEnabled(viewModel.khTouchControlsEnabled.value) // [KHMM]
                     setKhSingleScreenActive(viewModel.khSingleScreenActive.value) // [KHMM]
+                    setKhStickDeadzone(viewModel.khStickDeadzone.value / 100f) // [KHMM]
                 }
 
                 updateRendererConfiguration(viewModel.runtimeRendererConfiguration.value)

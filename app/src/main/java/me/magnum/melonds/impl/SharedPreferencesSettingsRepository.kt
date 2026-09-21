@@ -369,6 +369,14 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
+    // [KHMM] touch-stick deadzone in percent of the stick radius (applies to the movement
+    // and camera sticks; ListPreference stores strings)
+    override fun getKhStickDeadzone(): Flow<Int> {
+        return getOrCreatePreferenceSharedFlow("kh_stick_deadzone") {
+            preferences.getString("kh_stick_deadzone", "10")!!.toInt()
+        }
+    }
+
     // [KHMM] subtitles over HD replacement cutscenes; served to the plugin as DisableSubtitles
     override fun getKhShowSubtitles(): Flow<Boolean> {
         return getOrCreatePreferenceSharedFlow("kh_show_subtitles") {

@@ -43,6 +43,8 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     private var khControlsEnabled = false
     // [KHMM] whether the forced single-screen layout is active (swap-screens is meaningless then)
     private var khSingleScreenActive = false
+    // [KHMM] touch-stick deadzone from the input settings
+    private var khStickDeadzone = KhStickView.DEFAULT_DEADZONE
 
     fun setFrontendInputHandler(frontendInputHandler: FrontendInputHandler) {
         this.frontendInputHandler = frontendInputHandler
@@ -73,6 +75,13 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             khSingleScreenActive = active
             updateVisibility()
         }
+    }
+
+    // [KHMM] applies live to already-instantiated sticks
+    fun setKhStickDeadzone(deadzone: Float) {
+        khStickDeadzone = deadzone
+        (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.deadzone = deadzone
+        (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.deadzone = deadzone
     }
 
     fun toggleSoftInputVisibility() {
@@ -131,13 +140,27 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_SHORTCUT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.L, enableHapticFeedback, touchVibrator))
             // [KHMM] sticks track and draw themselves; only the value listeners attach here
-            (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.listener = KhStickDpadAdapter(it)
+            (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.apply {
+                deadzone = khStickDeadzone
+                listener = KhStickDpadAdapter(it)
+            }
             val khCameraListener = it as? IKhCameraListener
-            (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.listener = KhStickView.Listener { x, y ->
-                // Squared response: a touch stick reaches full deflection far more easily than
-                // a physical one, so give fine control near center at the same max speed
-                val magnitude = sqrt(x * x + y * y)
-                khCameraListener?.onKhCameraAxes(x * magnitude, y * magnitude)
+            (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.apply {
+                deadzone = khStickDeadzone
+                listener = KhStickView.Listener { x, y ->
+                    val magnitude = sqrt(x * x + y * y)
+                    if (magnitude <= 0f) {
+                        khCameraListener?.onKhCameraAxes(0f, 0f)
+                    } else {
+                        // Squared response: a touch stick reaches full deflection far more
+                        // easily than a physical one — fine control near center, same max.
+                        // Then pre-compensate the native quantizer's own 0.15 deadzone
+                        // (khQuantizeCameraAxis serves raw controller axes; this input is
+                        // already deadzoned here, so it must not be deadzoned twice).
+                        val outMagnitude = 0.15f + 0.85f * magnitude * magnitude
+                        khCameraListener?.onKhCameraAxes(x / magnitude * outMagnitude, y / magnitude * outMagnitude)
+                    }
+                }
             }
         }
         frontendInputHandler?.let {

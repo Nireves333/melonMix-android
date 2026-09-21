@@ -425,6 +425,7 @@
     <string name="input_kh_camera_left">KH: Camera Left</string>
     <string name="input_kh_camera_right">KH: Camera Right</string>
     <string name="kh_camera_sensitivity">KH camera sensitivity</string>
+    <string name="kh_stick_deadzone">Touch stick deadzone</string>
 
     <string name="layouts">Layouts</string>
     <string name="layouts_summary">Manage custom layout configurations</string>
@@ -689,6 +690,27 @@
         <item>10</item>
         <item>11</item>
         <item>12</item>
+    </string-array>
+
+    <!-- [KHMM] touch-stick deadzone options, percent of the stick radius -->
+    <string-array name="kh_stick_deadzone_options">
+        <item>None</item>
+        <item>5%</item>
+        <item>10%</item>
+        <item>15%</item>
+        <item>20%</item>
+        <item>25%</item>
+        <item>30%</item>
+    </string-array>
+
+    <string-array name="kh_stick_deadzone_values">
+        <item>0</item>
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+        <item>20</item>
+        <item>25</item>
+        <item>30</item>
     </string-array>
 
     <string-array name="soft_input_behaviour_options">
