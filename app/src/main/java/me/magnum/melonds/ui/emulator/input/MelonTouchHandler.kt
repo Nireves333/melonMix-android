@@ -4,8 +4,13 @@ import me.magnum.melonds.MelonEmulator
 import me.magnum.melonds.domain.model.Input
 import me.magnum.melonds.domain.model.Point
 
-class MelonTouchHandler : IInputListener {
+class MelonTouchHandler : IInputListener, IKhCameraListener {
     private var isLidClosed = false
+
+    // [KHMM] touch camera stick; same JNI channel the controller camera path uses
+    override fun onKhCameraAxes(x: Float, y: Float) {
+        MelonEmulator.setKhCameraAxes(x, y)
+    }
 
     override fun onKeyPress(key: Input) {
         if (key == Input.HINGE) {

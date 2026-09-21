@@ -30,5 +30,7 @@ fun getLayoutComponentName(layoutComponent: LayoutComponent): Int {
         LayoutComponent.KH_COMMAND_MENU -> R.string.input_kh_command_menu
         LayoutComponent.KH_BUTTON_HUD_TOGGLE -> R.string.input_kh_hud_toggle
         LayoutComponent.KH_BUTTON_MAP_TOGGLE -> R.string.input_kh_fullscreen_map_toggle
+        LayoutComponent.KH_CAMERA_STICK -> R.string.input_kh_camera_stick
+        LayoutComponent.MOVEMENT_STICK -> R.string.input_movement_stick
     }
 }

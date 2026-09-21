@@ -14,7 +14,10 @@ import me.magnum.melonds.ui.emulator.input.ButtonsInputHandler
 import me.magnum.melonds.ui.emulator.input.DpadInputHandler
 import me.magnum.melonds.ui.emulator.input.FrontendInputHandler
 import me.magnum.melonds.ui.emulator.input.IInputListener
+import me.magnum.melonds.ui.emulator.input.IKhCameraListener
 import me.magnum.melonds.ui.emulator.input.KhCommandMenuInputHandler
+import me.magnum.melonds.ui.emulator.input.KhStickDpadAdapter
+import me.magnum.melonds.ui.emulator.input.view.KhStickView
 import me.magnum.melonds.ui.emulator.input.SingleButtonInputHandler
 import me.magnum.melonds.ui.emulator.input.TouchscreenInputHandler
 import me.magnum.melonds.ui.emulator.input.view.ToggleableImageView
@@ -115,6 +118,12 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.KH_COMMAND_MENU)?.view?.setOnTouchListener(KhCommandMenuInputHandler(it, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_HUD_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_HUD_TOGGLE, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
+            // [KHMM] sticks track and draw themselves; only the value listeners attach here
+            (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.listener = KhStickDpadAdapter(it)
+            val khCameraListener = it as? IKhCameraListener
+            (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.listener = KhStickView.Listener { x, y ->
+                khCameraListener?.onKhCameraAxes(x, y)
+            }
         }
         frontendInputHandler?.let {
             getLayoutComponentView(LayoutComponent.BUTTON_RESET)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.RESET, enableHapticFeedback, touchVibrator))
@@ -164,7 +173,8 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
                         LayoutComponent.BUTTON_L,
                         LayoutComponent.BUTTON_R,
                         LayoutComponent.BUTTON_START,
-                        LayoutComponent.BUTTON_SELECT
+                        LayoutComponent.BUTTON_SELECT,
+                        LayoutComponent.MOVEMENT_STICK
                     ) + LayoutComponent.entries.filter { it.isKhComponent() } // [KHMM] KH actions live on the controller too
                 }
             }

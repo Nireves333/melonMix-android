@@ -20,6 +20,8 @@ class RuntimeLayoutComponentViewBuilderFactory : LayoutComponentViewBuilderFacto
                 LayoutComponent.BUTTONS -> ButtonsLayoutComponentViewBuilder()
                 // [KHMM]
                 LayoutComponent.KH_COMMAND_MENU -> DpadLayoutComponentViewBuilder(R.drawable.kh_command_menu)
+                LayoutComponent.KH_CAMERA_STICK -> KhStickLayoutComponentViewBuilder(knobFilled = true)
+                LayoutComponent.MOVEMENT_STICK -> KhStickLayoutComponentViewBuilder(knobFilled = false)
                 LayoutComponent.BUTTON_FAST_FORWARD_TOGGLE,
                 LayoutComponent.BUTTON_MICROPHONE_TOGGLE,
                 LayoutComponent.BUTTON_TOGGLE_SOFT_INPUT -> ToggleableSingleButtonLayoutComponentViewBuilder(layoutComponent)

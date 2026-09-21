@@ -18,6 +18,8 @@ class EditorLayoutComponentViewBuilderFactory : LayoutComponentViewBuilderFactor
                 LayoutComponent.BUTTONS -> EditorBackgroundLayoutComponentViewBuilder(ButtonsLayoutComponentViewBuilder())
                 // [KHMM]
                 LayoutComponent.KH_COMMAND_MENU -> EditorBackgroundLayoutComponentViewBuilder(DpadLayoutComponentViewBuilder(R.drawable.kh_command_menu))
+                LayoutComponent.KH_CAMERA_STICK -> EditorBackgroundLayoutComponentViewBuilder(KhStickLayoutComponentViewBuilder(knobFilled = true))
+                LayoutComponent.MOVEMENT_STICK -> EditorBackgroundLayoutComponentViewBuilder(KhStickLayoutComponentViewBuilder(knobFilled = false))
                 else -> EditorBackgroundLayoutComponentViewBuilder(SingleButtonLayoutComponentViewBuilder(layoutComponent))
             }
 

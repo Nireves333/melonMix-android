@@ -353,6 +353,9 @@ class DefaultLayoutProvider(
         // Command menu cluster above the d-pad; lock-on flanked by the switch-target pair above
         // the ABXY cluster; HUD/map toggles extend the small utility row outward
         val commandMenuRect = Rect(dpadRect.x, dpadRect.y - spacing4dp * 2 - khClusterSize, khClusterSize, khClusterSize)
+        // Camera stick under the right thumb: left of the ABXY cluster, bottom-aligned with it
+        val stickSize = screenUnitsConverter.dpToPixels(110f).toInt()
+        val cameraStickRect = Rect(buttonsRect.x - spacing4dp * 3 - stickSize, buttonsRect.y + buttonsRect.height - stickSize, stickSize, stickSize)
         val lockOnY = buttonsRect.y - spacing4dp * 2 - lockOnSize
         val switchY = lockOnY + (lockOnSize - smallButtonsSize) / 2
         val switchRightX = buttonsRect.x + buttonsRect.width - smallButtonsSize
@@ -361,6 +364,7 @@ class DefaultLayoutProvider(
 
         return listOf(
             PositionedLayoutComponent(commandMenuRect, LayoutComponent.KH_COMMAND_MENU),
+            PositionedLayoutComponent(cameraStickRect, LayoutComponent.KH_CAMERA_STICK),
             PositionedLayoutComponent(Rect(lockOnX, lockOnY, lockOnSize, lockOnSize), LayoutComponent.KH_BUTTON_LOCK_ON),
             PositionedLayoutComponent(Rect(switchLeftX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT),
             PositionedLayoutComponent(Rect(switchRightX, switchY, smallButtonsSize, smallButtonsSize), LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT),

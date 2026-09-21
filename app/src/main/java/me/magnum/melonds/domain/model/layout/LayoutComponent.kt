@@ -28,7 +28,10 @@ enum class LayoutComponent(val matchingInputs: List<Input>) {
     KH_BUTTON_SWITCH_TARGET_RIGHT(listOf(Input.KH_SWITCH_TARGET_RIGHT)),
     KH_COMMAND_MENU(listOf(Input.KH_COMMAND_MENU_UP, Input.KH_COMMAND_MENU_DOWN, Input.KH_COMMAND_MENU_LEFT, Input.KH_COMMAND_MENU_RIGHT)),
     KH_BUTTON_HUD_TOGGLE(listOf(Input.KH_HUD_TOGGLE)),
-    KH_BUTTON_MAP_TOGGLE(listOf(Input.KH_FULLSCREEN_MAP_TOGGLE));
+    KH_BUTTON_MAP_TOGGLE(listOf(Input.KH_FULLSCREEN_MAP_TOGGLE)),
+    KH_CAMERA_STICK(listOf(Input.KH_CAMERA_RIGHT, Input.KH_CAMERA_LEFT, Input.KH_CAMERA_DOWN, Input.KH_CAMERA_UP)),
+    // [KHMM] virtual stick quantized to the DS d-pad — generic, works in any game
+    MOVEMENT_STICK(listOf(Input.UP, Input.DOWN, Input.LEFT, Input.RIGHT));
 
     fun isScreen(): Boolean {
         return this == TOP_SCREEN || this == BOTTOM_SCREEN
