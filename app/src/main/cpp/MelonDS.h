@@ -67,12 +67,15 @@ namespace MelonDSAndroid {
     // [KHMM] refined controls: KH addon key press state + camera stick axes (see MelonInstance)
     extern void khSetAddonKey(int action, bool down);
     extern void khSetCameraAxes(float x, float y);
-    // [KHMM] user camera-stick speed in HALF-UNITS (2-8 = 1.0-4.0 in 0.5 steps; desktop's
-    // <root>.CameraSensitivity is an integer SHIFT count 1-4, so half-steps are synthesized:
-    // shift = ceil(v/2) served to loadConfigs, odd v scales the stick nibble range to 75%).
-    // 0 = unset, keep the plugin's config/default value. A global (not per-instance) so the
-    // pref observer can set it regardless of ROM-load ordering; loadConfigs is re-run on
-    // the emu thread via shouldInvalidateConfigs when the setter fires.
+    // [KHMM] user camera-stick speed in HALF-UNITS (2-12 = displayed 1.0-6.0 in 0.5 steps).
+    // Displayed 3.0-6.0 (v=6..12) is desktop's <root>.CameraSensitivity integer SHIFT scale
+    // 1-4: shift = (v-3)/2 served to loadConfigs, odd v scales the stick nibble range to 75%
+    // (the 1.5x midpoint of a doubling scale). Displayed 1.0-2.5 (v=2..5) extends the same
+    // curve below the desktop minimum: shift stays 1 and the nibble range keeps halving
+    // instead (see khQuantizeCameraAxis). 0 = unset, keep the plugin's config/default value.
+    // A global (not per-instance) so the pref observer can set it regardless of ROM-load
+    // ordering; loadConfigs is re-run on the emu thread via shouldInvalidateConfigs when the
+    // setter fires.
     extern std::atomic_int khCameraSensitivity;
     extern void khSetCameraSensitivity(int sensitivity);
 

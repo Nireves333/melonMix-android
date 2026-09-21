@@ -410,6 +410,10 @@
     <string name="input_kh_command_menu_right">KH: Command Menu - Select</string>
     <string name="input_kh_command_menu_up">KH: Command Menu - Up</string>
     <string name="input_kh_command_menu_down">KH: Command Menu - Down</string>
+    <string name="input_kh_command_menu">KH: Command Menu</string>
+    <string name="input_kh_camera_stick">KH: Camera Stick</string>
+    <string name="input_movement_stick">Movement Stick</string>
+    <string name="input_kh_shortcut">KH: Shortcuts (L)</string>
     <string name="input_kh_hud_toggle">KH: HUD Toggle</string>
     <string name="input_kh_fullscreen_map_toggle">KH: Fullscreen Map Toggle</string>
     <string name="kh_recommended_bindings_button">KH layout</string>
@@ -421,6 +425,7 @@
     <string name="input_kh_camera_left">KH: Camera Left</string>
     <string name="input_kh_camera_right">KH: Camera Right</string>
     <string name="kh_camera_sensitivity">KH camera sensitivity</string>
+    <string name="kh_stick_deadzone">Touch stick deadzone</string>
 
     <string name="layouts">Layouts</string>
     <string name="layouts_summary">Manage custom layout configurations</string>
@@ -655,9 +660,10 @@
         <item>Device microphone</item>
     </string-array>
 
-    <!-- [KHMM] camera speeds in half-steps; values are half-units (2-8 = 1.0-4.0). The
-         plugin's sensitivity is an integer bit-shift (each whole step doubles the speed),
-         so half-steps are synthesized natively: next shift + stick range scaled to 75%. -->
+    <!-- [KHMM] camera speeds in half-steps; values are half-units (2-12 = 1.0-6.0). Speeds
+         from 3 up match the desktop 1-4 shift scale (3 here = desktop 1, 6 = desktop 4;
+         each whole step doubles the speed, half-steps are synthesized natively via a 75%
+         stick-range scale); 1-2.5 extend the same curve below the desktop minimum. -->
     <string-array name="kh_camera_speed_options">
         <item>1 (slowest)</item>
         <item>1.5</item>
@@ -665,7 +671,11 @@
         <item>2.5</item>
         <item>3</item>
         <item>3.5</item>
-        <item>4 (fastest)</item>
+        <item>4</item>
+        <item>4.5</item>
+        <item>5</item>
+        <item>5.5</item>
+        <item>6 (fastest)</item>
     </string-array>
 
     <string-array name="kh_camera_speed_values">
@@ -676,6 +686,31 @@
         <item>6</item>
         <item>7</item>
         <item>8</item>
+        <item>9</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+    </string-array>
+
+    <!-- [KHMM] touch-stick deadzone options, percent of the stick radius -->
+    <string-array name="kh_stick_deadzone_options">
+        <item>None</item>
+        <item>5%</item>
+        <item>10%</item>
+        <item>15%</item>
+        <item>20%</item>
+        <item>25%</item>
+        <item>30%</item>
+    </string-array>
+
+    <string-array name="kh_stick_deadzone_values">
+        <item>0</item>
+        <item>5</item>
+        <item>10</item>
+        <item>15</item>
+        <item>20</item>
+        <item>25</item>
+        <item>30</item>
     </string-array>
 
     <string-array name="soft_input_behaviour_options">

@@ -52,13 +52,26 @@
 
     <!-- [KHMM] camera-stick speed for the KH games. Desktop exposes 1-4 in whole steps
          (an integer bit-shift, each step DOUBLES the speed — too coarse on the RG505);
-         we add half-steps, stored as half-units 2-8. Applies live. -->
+         we add half-steps and two slower whole steps below the desktop minimum, stored
+         as half-units 2-12 = 1.0-6.0 (key renamed from kh_camera_speed when the scale
+         changed; the old default speed is this scale's 4). Applies live. -->
     <ListPreference
-            android:key="kh_camera_speed"
+            android:key="kh_camera_speed_2"
             android:title="@string/kh_camera_sensitivity"
             android:summary="%s"
             android:entries="@array/kh_camera_speed_options"
             android:entryValues="@array/kh_camera_speed_values"
-            android:defaultValue="4"
+            android:defaultValue="8"
+            app:iconSpaceReserved="false" />
+
+    <!-- [KHMM] radial deadzone for the touch movement/camera sticks, percent of the stick
+         radius. Applies live. -->
+    <ListPreference
+            android:key="kh_stick_deadzone"
+            android:title="@string/kh_stick_deadzone"
+            android:summary="%s"
+            android:entries="@array/kh_stick_deadzone_options"
+            android:entryValues="@array/kh_stick_deadzone_values"
+            android:defaultValue="10"
             app:iconSpaceReserved="false" />
 </PreferenceScreen>

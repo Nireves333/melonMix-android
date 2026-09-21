@@ -7,6 +7,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -47,7 +49,9 @@ import androidx.compose.material.Text
  * A Compose port of the desktop Qt PauseMenuOverlay (KHMelonMix
  * src/frontend/qt_sdl/MainWindow/PauseMenuOverlay.cpp) — all proportions are relative to the
  * overlay height scaled by the plugin's HUD-scale-derived size modifier, matching desktop.
- * Purely visual: input passes through to the game, which runs its own menu logic natively.
+ * Input passes through to the game, which runs its own menu logic natively; the entries are
+ * also tappable ([onEntryTapped]) so a touch-only player can drive the menu — the caller
+ * translates a tap into the equivalent DS key press.
  *
  * [menuBounds] confines the menu to the on-screen top-screen viewport (desktop parents the
  * overlay to the emulator panel, Screen.cpp:115) — needed when the layout is not the forced
@@ -56,7 +60,7 @@ import androidx.compose.material.Text
  * whole window either way.
  */
 @Composable
-fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null) {
+fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTapped: ((Int) -> Unit)? = null) {
     if (state == null) {
         return
     }
@@ -172,7 +176,10 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null) {
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .offset { IntOffset(buttonLeftPx.roundToInt(), buttonTopPx.roundToInt()) }
-                    .size(with(density) { buttonWidthPx.toDp() }, with(density) { buttonHeightPx.toDp() }),
+                    .size(with(density) { buttonWidthPx.toDp() }, with(density) { buttonHeightPx.toDp() })
+                    .pointerInput(index) {
+                        detectTapGestures { onEntryTapped?.invoke(index) }
+                    },
             ) {
                 Image(
                     painter = painterResource(if (isSelected) R.drawable.kh_button_selected else R.drawable.kh_button_unselected),

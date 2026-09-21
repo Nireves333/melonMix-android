@@ -20,9 +20,28 @@ enum class LayoutComponent(val matchingInputs: List<Input>) {
     BUTTON_QUICK_SAVE(listOf(Input.QUICK_SAVE)),
     BUTTON_QUICK_LOAD(listOf(Input.QUICK_LOAD)),
     BUTTON_REWIND(listOf(Input.REWIND)),
-    BUTTON_MICROPHONE_TOGGLE(listOf(Input.MICROPHONE));
+    BUTTON_MICROPHONE_TOGGLE(listOf(Input.MICROPHONE)),
+    // [KHMM] KH Melon Mix touch controls. Only functional while the KH plugin drives the loaded
+    // game; RuntimeLayoutView hides them otherwise (see setKhControlsEnabled)
+    KH_BUTTON_LOCK_ON(listOf(Input.KH_LOCK_ON)),
+    KH_BUTTON_SWITCH_TARGET_LEFT(listOf(Input.KH_SWITCH_TARGET_LEFT)),
+    KH_BUTTON_SWITCH_TARGET_RIGHT(listOf(Input.KH_SWITCH_TARGET_RIGHT)),
+    KH_COMMAND_MENU(listOf(Input.KH_COMMAND_MENU_UP, Input.KH_COMMAND_MENU_DOWN, Input.KH_COMMAND_MENU_LEFT, Input.KH_COMMAND_MENU_RIGHT)),
+    KH_BUTTON_HUD_TOGGLE(listOf(Input.KH_HUD_TOGGLE)),
+    KH_BUTTON_MAP_TOGGLE(listOf(Input.KH_FULLSCREEN_MAP_TOGGLE)),
+    KH_CAMERA_STICK(listOf(Input.KH_CAMERA_RIGHT, Input.KH_CAMERA_LEFT, Input.KH_CAMERA_DOWN, Input.KH_CAMERA_UP)),
+    // [KHMM] virtual stick quantized to the DS d-pad — generic, works in any game
+    MOVEMENT_STICK(listOf(Input.UP, Input.DOWN, Input.LEFT, Input.RIGHT)),
+    // [KHMM] sends plain DS L; replaces the stock L button in KH mode, where L's only job
+    // is holding the shortcut panel open
+    KH_BUTTON_SHORTCUT(listOf(Input.L));
 
     fun isScreen(): Boolean {
         return this == TOP_SCREEN || this == BOTTOM_SCREEN
+    }
+
+    // [KHMM]
+    fun isKhComponent(): Boolean {
+        return matchingInputs.any { it.isKhInput || it.isKhCameraInput }
     }
 }

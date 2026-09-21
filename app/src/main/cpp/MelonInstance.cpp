@@ -949,15 +949,22 @@ void MelonInstance::khLoadPluginConfigs()
         },
         // "<root>.CameraSensitivity" is the camera-stick speed (a shift count on the 0-15
         // stick nibbles — each whole step DOUBLES the speed; desktop spinbox 1-4, default
-        // 3). Our pref stores HALF-UNITS (2-8 = 1.0-4.0): the shift served here is
-        // ceil(v/2), and half-steps (odd v) scale the stick range to 75% at quantization
-        // (khQuantizeCameraAxis) — 0.75 * 2^(s+1) = 1.5 * 2^s, the linear midpoint.
+        // 3). Our pref stores HALF-UNITS 2-12 = displayed 1.0-6.0, where displayed 3-6
+        // (v=6..12) is the desktop 1-4 shift scale: shift = (v-3)/2, and half-steps (odd v)
+        // scale the stick range to 75% at quantization (khQuantizeCameraAxis) —
+        // 0.75 * 2^(s+1) = 1.5 * 2^s, the linear midpoint. Below that (v=2..5) the shift
+        // stays 1 and quantization keeps halving the stick range instead.
         // 0 = unset, the plugin falls back to DefaultCameraSensitivity.
         [firmwareLanguage](std::string path) -> int {
             if (path == "Instance0.Firmware.Language")
                 return firmwareLanguage;
             if (path.size() > 18 && path.compare(path.size() - 18, 18, ".CameraSensitivity") == 0)
-                return (khCameraSensitivity.load(std::memory_order_relaxed) + 1) / 2;
+            {
+                int khSensitivity = khCameraSensitivity.load(std::memory_order_relaxed);
+                if (khSensitivity == 0)
+                    return 0;
+                return khSensitivity >= 6 ? (khSensitivity - 3) / 2 : 1;
+            }
             return 0;
         },
         // [KHMM] "<root>.AudioPack" is the remastered-BGM audio pack subfolder (root is the
@@ -1187,7 +1194,8 @@ u32 MelonInstance::khBuildAddonMask()
 // hard cap: the nibble slots in TouchKeyMask are 4 bits wide (desktop's joystick path feeds
 // 0-31 and bleeds into the neighbouring direction — a known upstream overflow, not ported).
 // Half-step speeds (odd half-unit sensitivity values) use the next plugin shift with the
-// stick range scaled to 75% — see the .CameraSensitivity comment in khLoadPluginConfigs.
+// stick range scaled to 75%; the sub-desktop speeds (half-units 2-5) keep the plugin shift
+// at 1 and keep halving the range — see the .CameraSensitivity comment in khLoadPluginConfigs.
 static u32 khQuantizeCameraAxis(float value)
 {
     float magnitude = value < 0 ? -value : value;
@@ -1198,7 +1206,19 @@ static u32 khQuantizeCameraAxis(float value)
     float scaled = (magnitude - deadzone) / (1.0f - deadzone);
     if (scaled > 1.0f)
         scaled = 1.0f;
-    float range = (khCameraSensitivity.load(std::memory_order_relaxed) & 1) ? 11.25f : 15.0f;
+    int khSensitivity = khCameraSensitivity.load(std::memory_order_relaxed);
+    float range;
+    if (khSensitivity == 0)
+        range = 15.0f;                                        // unset: plugin default, full range
+    else if (khSensitivity >= 6)
+        range = (khSensitivity & 1) ? 11.25f : 15.0f;         // desktop shift scale + 75% half-steps
+    else
+    {
+        static const float khSlowRanges[] = { 3.75f, 5.625f, 7.5f, 11.25f }; // half-units 2..5
+        int khSlowIndex = khSensitivity - 2;
+        if (khSlowIndex < 0) khSlowIndex = 0;
+        range = khSlowRanges[khSlowIndex];
+    }
     u32 quantized = (u32) (scaled * range + 0.5f);
     return quantized > 15 ? 15 : quantized;
 }

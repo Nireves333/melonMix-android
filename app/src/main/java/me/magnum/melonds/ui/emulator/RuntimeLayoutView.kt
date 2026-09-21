@@ -14,6 +14,10 @@ import me.magnum.melonds.ui.emulator.input.ButtonsInputHandler
 import me.magnum.melonds.ui.emulator.input.DpadInputHandler
 import me.magnum.melonds.ui.emulator.input.FrontendInputHandler
 import me.magnum.melonds.ui.emulator.input.IInputListener
+import me.magnum.melonds.ui.emulator.input.IKhCameraListener
+import me.magnum.melonds.ui.emulator.input.KhCommandMenuInputHandler
+import me.magnum.melonds.ui.emulator.input.KhStickDpadAdapter
+import me.magnum.melonds.ui.emulator.input.view.KhStickView
 import me.magnum.melonds.ui.emulator.input.SingleButtonInputHandler
 import me.magnum.melonds.ui.emulator.input.TouchscreenInputHandler
 import me.magnum.melonds.ui.emulator.input.view.ToggleableImageView
@@ -21,6 +25,7 @@ import me.magnum.melonds.ui.emulator.model.ConnectedControllersState
 import me.magnum.melonds.ui.emulator.model.RuntimeInputLayoutConfiguration
 import me.magnum.melonds.ui.layouteditor.model.LayoutTarget
 import javax.inject.Inject
+import kotlin.math.sqrt
 
 @AndroidEntryPoint
 class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutView(context, attrs) {
@@ -34,6 +39,12 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     private var isSoftInputVisible = true
     private var areScreensSwapped = false
     private var connectedControllersState: ConnectedControllersState = ConnectedControllersState.NoControllers
+    // [KHMM] whether the KH plugin drives the loaded game; KH touch components are hidden otherwise
+    private var khControlsEnabled = false
+    // [KHMM] whether the forced single-screen layout is active (swap-screens is meaningless then)
+    private var khSingleScreenActive = false
+    // [KHMM] touch-stick deadzone from the input settings
+    private var khStickDeadzone = KhStickView.DEFAULT_DEADZONE
 
     fun setFrontendInputHandler(frontendInputHandler: FrontendInputHandler) {
         this.frontendInputHandler = frontendInputHandler
@@ -48,6 +59,29 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     fun setConnectedControllersState(state: ConnectedControllersState) {
         connectedControllersState = state
         updateVisibility()
+    }
+
+    // [KHMM]
+    fun setKhControlsEnabled(enabled: Boolean) {
+        if (khControlsEnabled != enabled) {
+            khControlsEnabled = enabled
+            updateVisibility()
+        }
+    }
+
+    // [KHMM]
+    fun setKhSingleScreenActive(active: Boolean) {
+        if (khSingleScreenActive != active) {
+            khSingleScreenActive = active
+            updateVisibility()
+        }
+    }
+
+    // [KHMM] applies live to already-instantiated sticks
+    fun setKhStickDeadzone(deadzone: Float) {
+        khStickDeadzone = deadzone
+        (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.deadzone = deadzone
+        (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.deadzone = deadzone
     }
 
     fun toggleSoftInputVisibility() {
@@ -97,6 +131,37 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.BUTTON_SELECT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.SELECT, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.BUTTON_START)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.START, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.BUTTON_HINGE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.HINGE, enableHapticFeedback, touchVibrator))
+            // [KHMM] KH touch controls; MelonTouchHandler routes these to the addon-key channel
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_LOCK_ON)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_LOCK_ON, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_SWITCH_TARGET_LEFT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_SWITCH_TARGET_LEFT, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_SWITCH_TARGET_RIGHT, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_COMMAND_MENU)?.view?.setOnTouchListener(KhCommandMenuInputHandler(it, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_HUD_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_HUD_TOGGLE, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_SHORTCUT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.L, enableHapticFeedback, touchVibrator))
+            // [KHMM] sticks track and draw themselves; only the value listeners attach here
+            (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.apply {
+                deadzone = khStickDeadzone
+                listener = KhStickDpadAdapter(it)
+            }
+            val khCameraListener = it as? IKhCameraListener
+            (getLayoutComponentView(LayoutComponent.KH_CAMERA_STICK)?.view as? KhStickView)?.apply {
+                deadzone = khStickDeadzone
+                listener = KhStickView.Listener { x, y ->
+                    val magnitude = sqrt(x * x + y * y)
+                    if (magnitude <= 0f) {
+                        khCameraListener?.onKhCameraAxes(0f, 0f)
+                    } else {
+                        // Squared response: a touch stick reaches full deflection far more
+                        // easily than a physical one — fine control near center, same max.
+                        // Then pre-compensate the native quantizer's own 0.15 deadzone
+                        // (khQuantizeCameraAxis serves raw controller axes; this input is
+                        // already deadzoned here, so it must not be deadzoned twice).
+                        val outMagnitude = 0.15f + 0.85f * magnitude * magnitude
+                        khCameraListener?.onKhCameraAxes(x / magnitude * outMagnitude, y / magnitude * outMagnitude)
+                    }
+                }
+            }
         }
         frontendInputHandler?.let {
             getLayoutComponentView(LayoutComponent.BUTTON_RESET)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.RESET, enableHapticFeedback, touchVibrator))
@@ -146,8 +211,10 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
                         LayoutComponent.BUTTON_L,
                         LayoutComponent.BUTTON_R,
                         LayoutComponent.BUTTON_START,
-                        LayoutComponent.BUTTON_SELECT
-                    )
+                        LayoutComponent.BUTTON_SELECT,
+                        LayoutComponent.MOVEMENT_STICK,
+                        LayoutComponent.KH_BUTTON_SHORTCUT
+                    ) + LayoutComponent.entries.filter { it.isKhComponent() } // [KHMM] KH actions live on the controller too
                 }
             }
             SoftInputBehaviour.HIDE_ALL_BUTTONS_ASSIGNED_TO_CONNECTED_CONTROLLERS -> when(currentConnectedControllersState) {
@@ -162,6 +229,18 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
                 }
             }
             SoftInputBehaviour.ALWAYS_INVISIBLE -> LayoutComponent.entries.toList()
+        }
+
+        // [KHMM] each mode shows its own console's controls: with the KH plugin active the
+        // movement stick replaces the d-pad and the stock controls it makes redundant go away
+        // (DS R = lock-on, neither game uses the lid); without it, classic DS controls only.
+        hiddenComponents = if (khControlsEnabled) {
+            hiddenComponents + LayoutComponent.DPAD + LayoutComponent.BUTTON_R + LayoutComponent.BUTTON_HINGE +
+                    LayoutComponent.BUTTON_L + // replaced by the KH shortcut button (same DS input)
+                    if (khSingleScreenActive) listOf(LayoutComponent.BUTTON_SWAP_SCREENS) else emptyList()
+        } else {
+            hiddenComponents + LayoutComponent.entries.filter { it.isKhComponent() } +
+                    LayoutComponent.MOVEMENT_STICK + LayoutComponent.KH_BUTTON_SHORTCUT
         }
 
         if (!isSoftInputVisible) {

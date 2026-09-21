@@ -3,16 +3,18 @@
 KH Melon Mix on Android.
 
 I couldn't find an Android port of KH Melon Mix so I attempted to make one that runs on my Anbernic RG505. One
-widescreen screen, camera on the right stick, HD cutscenes, remastered music. It's
+widescreen screen, camera on the right stick, HD cutscenes, remastered music, and
+full touch controls if you have no controller. It's
 [melonDS-android](https://github.com/rafaelvcaetano/melonDS-android) with the [KH Melon Mix](https://github.com/vitor251093/KHMelonMix) features ported into it.
 
-| Game select | 358/2 Days | Re:coded |
-|---|---|---|
-| ![Game select](./.github/images/game_select.png) | ![358/2 Days](./.github/images/days_gameplay.png) | ![Re:coded](./.github/images/recoded_gameplay.png) |
+| Game select | 358/2 Days | Re:coded | Touch controls |
+|---|---|---|---|
+| ![Game select](./.github/images/game_select.png) | ![358/2 Days](./.github/images/days_gameplay.png) | ![Re:coded](./.github/images/recoded_gameplay.png) | ![Touch controls](./.github/images/touch_controls.png) |
 
-I built and tested this on an RG505 and nothing else. You're welcome to run it on
-other devices and to build on the code, but I can't promise anything beyond my own
-setup. If something breaks, open a bug report in [Discussions](https://github.com/Nireves333/melonMix-android/discussions) here, not on KH Melon Mix or melonDS. I'll try to fix issues when I can :)
+I built and tested this on an RG505 and nothing else. With touch controls in, it
+should be a good fit for phones now too, but I can't promise anything beyond my own
+setup. You're welcome to run it on other devices and to build on the code. If
+something breaks, open a bug report in [Discussions](https://github.com/Nireves333/melonMix-android/discussions) here, not on KH Melon Mix or melonDS. I'll try to fix issues when I can :)
 
 There's a ready-made APK on the
 [releases page](https://github.com/Nireves333/melonMix-android/releases). Setup,
@@ -28,6 +30,13 @@ building from source, asset packs and known issues are all in
   the command menu goes on the d-pad.
 - A "KH layout" button in the settings that applies all the recommended bindings
   at once.
+- Full touch controls, no controller needed. On screen buttons for Lock On, Switch
+  Target, the command menu, shortcuts, HUD and map, plus a movement stick and a
+  camera stick. Cutscenes and pause menus are tappable too.
+- The touch layout knows what it's doing: KH controls with the enhancements on,
+  classic DS buttons with them off, and everything hides when a controller is
+  connected. Every control can be moved and resized in the layout editor, with
+  settings for camera speed and stick deadzone.
 - HD cutscene replacement with subtitles in six languages (Days only).
 - Remastered music replacement with proper loop points (both games).
 - The app itself is reworked for the two games: KH styled game select screen, menu
@@ -35,8 +44,6 @@ building from source, asset packs and known issues are all in
 
 Not in it: texture replacement, HD cutscenes for Re:coded (upstream doesn't have
 those yet either), Lua scripting.
-
-Possible update: Touch controls, when I have time :)
 
 ## ROMs
 

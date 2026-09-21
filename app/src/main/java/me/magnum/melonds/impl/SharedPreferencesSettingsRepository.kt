@@ -94,6 +94,7 @@ class SharedPreferencesSettingsRepository(
         preferences.registerOnSharedPreferenceChangeListener(this)
         setDefaultThemeIfRequired()
         setDefaultMacAddressIfRequired()
+        migrateKhCameraSpeedIfRequired()
 
         // [KHMM] 6 sources exceed the typed combine overloads, so nest two typed combines
         renderConfigurationFlow = combine(
@@ -344,12 +345,35 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
-    // [KHMM] camera-stick speed in half-units (2-8 = 1.0-4.0 in 0.5 steps; the native side
-    // splits it into the plugin's integer shift + a 75% stick-range scale for half-steps).
-    // ListPreference stores strings; default "4" = speed 2.0
+    // [KHMM] one-time carry-over of a stored camera speed from the old 1.0-4.0 scale onto
+    // the 1.0-6.0 scale (same actual speed = +4 half-units). Done lazily here because the
+    // versioned migration framework never runs in this fork (last_version defaults above
+    // our restarted versionCodes).
+    private fun migrateKhCameraSpeedIfRequired() {
+        if (!preferences.contains("kh_camera_speed_2")) {
+            preferences.getString("kh_camera_speed", null)?.toIntOrNull()?.let {
+                preferences.edit {
+                    putString("kh_camera_speed_2", (it + 4).coerceIn(2, 12).toString())
+                }
+            }
+        }
+    }
+
+    // [KHMM] camera-stick speed in half-units (2-12 = 1.0-6.0 in 0.5 steps; speeds from 3.0
+    // up are the desktop 1-4 shift scale, the rest are synthesized natively by scaling the
+    // stick range). ListPreference stores strings; default "8" = speed 4.0 = the desktop
+    // default's old speed
     override fun getKhCameraSensitivity(): Flow<Int> {
-        return getOrCreatePreferenceSharedFlow("kh_camera_speed") {
-            preferences.getString("kh_camera_speed", "4")!!.toInt()
+        return getOrCreatePreferenceSharedFlow("kh_camera_speed_2") {
+            preferences.getString("kh_camera_speed_2", "8")!!.toInt()
+        }
+    }
+
+    // [KHMM] touch-stick deadzone in percent of the stick radius (applies to the movement
+    // and camera sticks; ListPreference stores strings)
+    override fun getKhStickDeadzone(): Flow<Int> {
+        return getOrCreatePreferenceSharedFlow("kh_stick_deadzone") {
+            preferences.getString("kh_stick_deadzone", "10")!!.toInt()
         }
     }
 

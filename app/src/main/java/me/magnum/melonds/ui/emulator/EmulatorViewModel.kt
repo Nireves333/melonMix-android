@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -151,6 +152,19 @@ class EmulatorViewModel @Inject constructor(
 
     private val _currentFps = MutableStateFlow<Int?>(null)
     val currentFps = _currentFps.asStateFlow()
+
+    // [KHMM] whether the KH plugin drives the loaded game (KH gamecode + enhanced graphics on
+    // + OpenGL). Gates the KH touch components in RuntimeLayoutView.
+    private val _khTouchControlsEnabled = MutableStateFlow(false)
+    val khTouchControlsEnabled = _khTouchControlsEnabled.asStateFlow()
+
+    // [KHMM] whether the forced single-screen (top-only) layout is active; the swap-screens
+    // soft button is hidden while it is (there is only one screen)
+    private val _khSingleScreenActive = MutableStateFlow(false)
+    val khSingleScreenActive = _khSingleScreenActive.asStateFlow()
+
+    // [KHMM] touch-stick deadzone (percent of the stick radius), applied live to the sticks
+    val khStickDeadzone = settingsRepository.getKhStickDeadzone().stateIn(viewModelScope, SharingStarted.Eagerly, 10)
 
     // [KHMM] KH pause-menu overlay state. The composite hides the game's native pause menu;
     // the emulator mirrors its content/cursor and we draw the replacement in Compose.
@@ -688,6 +702,8 @@ class EmulatorViewModel @Inject constructor(
         _secondaryScreenBackground.value = RuntimeBackground.None
         _layout.value = null
         uiLayoutProvider.setKhTopScreenOnly(false) // [KHMM]
+        _khTouchControlsEnabled.value = false // [KHMM]
+        _khSingleScreenActive.value = false // [KHMM]
     }
 
     // [KHMM] Drive the automatic single-screen (top-screen-only) layout: active only while the
@@ -712,8 +728,12 @@ class EmulatorViewModel @Inject constructor(
                 settingsRepository.getVideoRenderer(),
                 settingsRepository.getKhSingleScreenMode(),
             ) { enabled, renderer, singleScreen ->
-                enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL && singleScreen
+                val khPluginActive = enabled && isEnhancedGame && renderer == VideoRenderer.OPENGL
+                // KH touch components work whenever the plugin is active, single-screen or not
+                _khTouchControlsEnabled.value = khPluginActive
+                khPluginActive && singleScreen
             }.collect {
+                _khSingleScreenActive.value = it
                 uiLayoutProvider.setKhTopScreenOnly(it)
             }
         }
