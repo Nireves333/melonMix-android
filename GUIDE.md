@@ -102,7 +102,10 @@ Some notes:
   enhanced screen. Turn it off on dual screen devices (like the AYN Thor) to
   keep bottom screen content on the bottom screen. You keep the enhancements
   (HD cutscenes, music, subtitles, controls), and both screens show in your
-  normal screen layout.
+  normal screen layout. On the Thor, for a widescreen top screen with the map
+  still on the bottom, leave single screen mode off, open *Input > Layouts* and
+  stretch the top screen out to the full width (thanks to hydrogenicMetallium for
+  finding this).
 - **Touch controls**: no controller needed. On screen KH controls (Lock On,
   Switch Target, the command menu, shortcuts, HUD, map, a movement stick and a
   camera stick) show automatically when no controller is connected, and swap to
