@@ -95,6 +95,7 @@ class SharedPreferencesSettingsRepository(
         setDefaultThemeIfRequired()
         setDefaultMacAddressIfRequired()
         migrateKhCameraSpeedIfRequired()
+        migrateKhDualScreenModeIfRequired()
 
         // [KHMM] 6 sources exceed the typed combine overloads, so nest two typed combines
         renderConfigurationFlow = combine(
@@ -384,11 +385,23 @@ class SharedPreferencesSettingsRepository(
         }
     }
 
-    // [KHMM] single-screen mode; served to the plugin as DisableSingleScreenMode. Off keeps
+    // [KHMM] the "Dual screen mode" pref, inverted here so the rest of the app keeps the
+    // plugin's single-screen semantics (served as DisableSingleScreenMode). Dual on keeps
     // bottom-screen content on the native bottom screen (dual-screen devices, e.g. AYN Thor)
     override fun getKhSingleScreenMode(): Flow<Boolean> {
-        return getOrCreatePreferenceSharedFlow("kh_single_screen_mode") {
-            preferences.getBoolean("kh_single_screen_mode", true)
+        return getOrCreatePreferenceSharedFlow("kh_dual_screen_mode") {
+            !preferences.getBoolean("kh_dual_screen_mode", false)
+        }
+    }
+
+    // The pref was "Single screen mode" (kh_single_screen_mode, default on) through 1.1.0;
+    // carry a stored value over inverted so nobody's screen mode changes on update
+    private fun migrateKhDualScreenModeIfRequired() {
+        if (!preferences.contains("kh_dual_screen_mode") && preferences.contains("kh_single_screen_mode")) {
+            val singleScreen = preferences.getBoolean("kh_single_screen_mode", true)
+            preferences.edit {
+                putBoolean("kh_dual_screen_mode", !singleScreen)
+            }
         }
     }
 

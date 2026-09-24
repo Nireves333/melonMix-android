@@ -24,15 +24,18 @@
             app:iconSpaceReserved="false"
             android:defaultValue="true" />
 
-    <!-- [KHMM] desktop's DisableSingleScreenMode config: off keeps bottom-screen content on
-         the native bottom screen for dual-screen devices (e.g. AYN Thor) -->
+    <!-- [KHMM] desktop's DisableSingleScreenMode config, surfaced inverted as "Dual screen
+         mode": on keeps bottom-screen content on the native bottom screen for dual-screen
+         devices (e.g. AYN Thor). Old kh_single_screen_mode values are carried over inverted
+         by a lazy one-timer in SharedPreferencesSettingsRepository (the versioned Migrator
+         never runs in this fork) -->
     <SwitchPreference
-            android:key="kh_single_screen_mode"
-            android:title="@string/kh_single_screen_mode"
-            android:summary="@string/kh_single_screen_mode_summary"
+            android:key="kh_dual_screen_mode"
+            android:title="@string/kh_dual_screen_mode"
+            android:summary="@string/kh_dual_screen_mode_summary"
             android:dependency="enable_enhanced_graphics"
             app:iconSpaceReserved="false"
-            android:defaultValue="true" />
+            android:defaultValue="false" />
 
     <!-- [KHMM] read-only status row: whether the Days HD cutscene pack is installed and
          where it belongs, mirroring the music-pack rows in the audio settings -->
