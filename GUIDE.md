@@ -98,14 +98,15 @@ Some notes:
   On weaker hardware start at 1x and work your way up.
 - **Enhanced graphics** (*Video*): Turn it off and you get the
   stock dual screen DS view. (This turns off all Melon Mix features!!!)
-- **Single screen mode** (*Video*): On by default, everything is shown on one
-  enhanced screen. Turn it off on dual screen devices (like the AYN Thor) to
-  keep bottom screen content on the bottom screen. You keep the enhancements
-  (HD cutscenes, music, subtitles, controls), and both screens show in your
-  normal screen layout. On the Thor, for a widescreen top screen with the map
-  still on the bottom, leave single screen mode off, open *Input > Layouts* and
-  stretch the top screen out to the full width (thanks to hydrogenicMetallium for
-  finding this).
+- **Dual screen mode** (*Video*): Off by default, so everything is shown on one
+  enhanced screen. Turn it on for dual screen devices (like the AYN Thor) to
+  keep bottom screen content on the bottom screen, like a real DS. You keep the
+  enhancements (HD cutscenes, music, subtitles, controls), and both screens show
+  in your normal screen layout. On the Thor, for a widescreen top screen with
+  the map still on the bottom, turn dual screen mode on, open *Input > Layouts*
+  and stretch the top screen out to the full width (thanks to hydrogenicMetallium
+  for finding this). This setting was called Single screen mode before 1.1.1;
+  your choice carries over automatically.
 - **Touch controls**: no controller needed. On screen KH controls (Lock On,
   Switch Target, the command menu, shortcuts, HUD, map, a movement stick and a
   camera stick) show automatically when no controller is connected, and swap to
@@ -160,9 +161,9 @@ serious that I know of right now. Found a new bug or want a feature? Post it in
 - Re:coded can show a duplicated sliver of the notification header
   ([KHMelonMix#476](https://github.com/vitor251093/KHMelonMix/issues/476)). I'll
   pick up their fix when it lands.
-- With Single screen mode off (dual screen devices), some UI elements can break
-  up around the Sora memory scenes in Days. Dual screen mode has a list of rough
-  edges upstream too ([KHMelonMix#445](https://github.com/vitor251093/KHMelonMix/issues/445)).
+- Dual screen mode still has some rough edges upstream, like warped character
+  models in the Days mission mode menu
+  ([KHMelonMix#445](https://github.com/vitor251093/KHMelonMix/issues/445)).
 
 **Performance on other devices.** 64-bit with OpenGL ES 3.2 only (the JIT needs
 64-bit). Internal resolution matters the most here, some devices will run at 5x fine while other can only run 2x. 

@@ -22,7 +22,7 @@ building from source, asset packs and known issues are all in
 **[the guide](./GUIDE.md)**.
 
 > **AYN Thor tip:** want a widescreen top screen with the map on the bottom
-> screen? Turn off Single screen mode in *Settings > Video*, then open *Input >
+> screen? Turn on Dual screen mode in *Settings > Video*, then open *Input >
 > Layouts* and stretch the top screen to fill the width. Thanks to
 > hydrogenicMetallium for finding this.
 
