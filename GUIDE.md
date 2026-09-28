@@ -121,6 +121,12 @@ Some notes:
   before they register, as a percentage of the stick size. Applies live.
 - **Game language** (*System*): sets the language for in-game menus, the pause
   overlay and subtitles.
+- **RetroAchievements**: log in with your RetroAchievements account and
+  achievements work like in melonDS Android. Re:coded works with the US ROM. For
+  Days, RetroAchievements only supports the EU and JP (Rev 1) ROMs, so a US ROM
+  shows "No RetroAchievements were found for this game". An EU or JP ROM gets you
+  the achievements, but Melon Mix only has limited support for those versions
+  (see below).
 - **Save files** (*Save Files*): saves and save states can be kept in a folder of
   your choice too. Put them next to the asset packs and they survive a reinstall
   and can be synced with tools like Syncthing.
