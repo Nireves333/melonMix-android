@@ -57,6 +57,13 @@ Dump your own games, and use the **US versions**: that's what the Melon Mix
 enhancements are made for. EU and JP ROMs work with limited support and can
 glitch (see the guide). Please don't ask.
 
+RetroAchievements: log in with your RetroAchievements account and achievements
+work like in melonDS Android. Re:coded works with the US ROM. For Days,
+RetroAchievements only supports the EU and JP (Rev 1) ROMs, so a US ROM shows
+"No RetroAchievements were found for this game". An EU or JP ROM gets you the
+achievements, but Melon Mix only has limited support for those versions (see the
+guide).
+
 ## Credits
 
 This project is a port of other people's work:
