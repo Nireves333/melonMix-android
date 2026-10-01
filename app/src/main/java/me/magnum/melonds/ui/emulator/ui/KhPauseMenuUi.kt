@@ -293,7 +293,7 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
  * pill art: its luminance centroid is at ~45% of the height, so the optical center is ~5%
  * above geometric, plus the downward drop shadow's visual weight.
  */
-private const val BUTTON_LABEL_OPTICAL_RAISE = 0.10f
+private const val BUTTON_LABEL_OPTICAL_RAISE = 0.06f
 
 /**
  * Draw [text] with its glyphs' INK BOX centered at ([centerX], [centerY]), black drop shadow
