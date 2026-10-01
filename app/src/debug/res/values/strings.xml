@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Melon Mix</string>
+    <!-- Debug-variant launcher label so the dev install is distinguishable from the
+         release app on-device -->
+    <string name="app_name">Melon Mix DEV</string>
 </resources>
