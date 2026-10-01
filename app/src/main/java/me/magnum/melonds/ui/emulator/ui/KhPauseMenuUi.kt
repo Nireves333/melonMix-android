@@ -114,13 +114,15 @@ fun KhPauseMenuUi(
         val wPx = constraints.maxWidth.toFloat()
         val hPx = constraints.maxHeight.toFloat()
         val m = state.sizeModifier
-        val pauseSize = (15f / 13f) * m
-        val buttonsSize = 1.25f * m
+        // Both themes run larger than desktop's proportions (user-tuned)
+        val pauseSize = (15f / 13f) * m * MENU_SCALE
+        val buttonsSize = 1.25f * m * MENU_SCALE
         val hasSubtitle = state.subtitle.isNotEmpty()
 
-        // Vertical layout anchors (fractions of overlay height, from the desktop painter)
+        // Vertical layout anchors (fractions of overlay height, from the desktop painter,
+        // except the title hugging the buttons closer than desktop's 0.13 — user-tuned)
         val bottomMargin = (if (hasSubtitle) -0.01f else 0.03f) * m
-        val titleCenterY = hPx * (0.5f - bottomMargin - 0.13f * m - (if (hasSubtitle) 0.045f * m else 0f))
+        val titleCenterY = hPx * (0.5f - bottomMargin - 0.105f * m - (if (hasSubtitle) 0.045f * m else 0f))
         val subtitleCenterY = hPx * (0.5f - bottomMargin)
         val firstButtonY = hPx * (0.5f - bottomMargin + (if (hasSubtitle) 0.055f * m else 0f))
 
@@ -172,10 +174,11 @@ fun KhPauseMenuUi(
                 drawIntoCanvas { canvas ->
                     val c = canvas.nativeCanvas
                     // Mickey emblem: black outline pass then white fill, so the three circles
-                    // merge into one outlined silhouette
-                    val earRadius = emblemRadius * 0.55f
-                    val earDx = emblemRadius * 0.78f
-                    val earDy = emblemRadius * 0.78f
+                    // merge into one outlined silhouette. Ears kept small and well separated
+                    // from the head so the mark reads crisp, not blobby.
+                    val earRadius = emblemRadius * 0.46f
+                    val earDx = emblemRadius * 0.82f
+                    val earDy = emblemRadius * 0.92f
                     val circles = listOf(
                         Triple(headCx, centerY, emblemRadius),
                         Triple(headCx - earDx, centerY - earDy, earRadius),
@@ -355,11 +358,11 @@ fun KhPauseMenuUi(
                         if (isSelected) {
                             val inset = border * 2.1f
                             drawRoundRect(
-                                color = RecodedGold.copy(alpha = 0.8f),
+                                color = RecodedGold.copy(alpha = 0.85f),
                                 topLeft = Offset(inset, inset),
                                 size = Size(size.width - inset * 2f, size.height - inset * 2f),
                                 cornerRadius = CornerRadius((size.height - inset * 2f) / 2f),
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = border * 0.35f),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = border * 0.55f),
                             )
                         }
                     }
@@ -406,6 +409,9 @@ fun KhPauseMenuUi(
                 val handHeightPx = buttonHeightPx * 1.15f
                 val handWidthPx = handHeightPx // 128x128 source
                 val handBobPx = buttonHeightPx * 0.15f * sin(t * (2f * PI.toFloat() / 1.2f))
+                // The Re:Coded pill has no silver cap for the glove to tuck into, so it sits
+                // a touch further out from the pill's edge there
+                val handOverlapPx = buttonHeightPx * (if (theme == KhPauseMenuTheme.RECODED) 0.02f else 0.20f)
                 Image(
                     painter = painterResource(R.drawable.kh_menu_hand),
                     contentDescription = null,
@@ -413,7 +419,7 @@ fun KhPauseMenuUi(
                         .align(Alignment.TopStart)
                         .offset {
                             IntOffset(
-                                (buttonLeftPx - handWidthPx + buttonHeightPx * 0.20f + handBobPx).roundToInt(),
+                                (buttonLeftPx - handWidthPx + handOverlapPx + handBobPx).roundToInt(),
                                 (buttonTopPx + buttonHeightPx / 2f - handHeightPx / 2f).roundToInt(),
                             )
                         }
@@ -443,6 +449,9 @@ private const val RECODED_LABEL_OPTICAL_RAISE = 0.03f
 private val RecodedRed = Color(0xFFFB3041)
 private val RecodedGold = Color(0xFFE5B948)
 
+/** Overall menu size multiplier relative to desktop's proportions, both themes (user-tuned). */
+private const val MENU_SCALE = 1.15f
+
 /**
  * Draw [text] with its glyphs' INK BOX centered at ([centerX], [centerY]), black drop shadow
  * first, then white — the Compose-side twin of desktop PauseMenuOverlay.cpp's ink-box
@@ -450,6 +459,11 @@ private val RecodedGold = Color(0xFFE5B948)
  * center"). [Paint.getTextBounds] is Android's tightBoundingRect: relative to the baseline,
  * top negative. [outlineWidthPx] > 0 adds a black outline under the white fill (the Re:Coded
  * text treatment).
+ *
+ * Centering uses the CAP BAND (ink top to baseline) rather than the full ink box: descenders
+ * hang below and don't count toward the optical center, otherwise a label with one ("Skip")
+ * sits visibly higher in its pill than one without ("Continue"). Labels without descenders
+ * are unaffected either way.
  */
 private fun drawInkCenteredText(
     canvas: android.graphics.Canvas,
@@ -464,7 +478,7 @@ private fun drawInkCenteredText(
     paint.getTextBounds(text, 0, text.length, inkBox)
     val textWidth = paint.measureText(text)
     val x = centerX - textWidth / 2f
-    val baselineY = centerY - inkBox.top - inkBox.height() / 2f
+    val baselineY = centerY - inkBox.top / 2f
 
     paint.color = android.graphics.Color.BLACK
     canvas.drawText(text, x + shadowOffsetPx, baselineY + shadowOffsetPx, paint)
