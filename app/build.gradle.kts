@@ -59,6 +59,10 @@ android {
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
+            // Visible "DEV" markers so dev installs can't be mistaken for the release app
+            // on-device (same name/icon/version otherwise); label override lives in
+            // src/debug/res/values/strings.xml
+            versionNameSuffix = " DEV"
             // [KHMM] PERF (keeper): AGP's debug variant maps to CMAKE_BUILD_TYPE=Debug and the melonDS
             // core sets no optimization level, so the emulation core was building at clang's -O0 default
             // => ~3.5x slower emulation than stock's Release build (measured on RG505: emu 38ms->10ms,
