@@ -234,8 +234,11 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
                             buttonPaint,
                             label,
                             size.width / 2f,
-                            // Desktop nudges the label a touch above true center of the pill
-                            size.height / 2f - hPx * 0.0025f * buttonsSize,
+                            // Centered on the pill's OPTICAL center, not its geometric one: the
+                            // art's top gloss puts its visual weight at ~45% of the height
+                            // (luminance centroid), and the drop shadow hangs dark weight below
+                            // the glyphs, so geometrically centered text reads low. Tune here.
+                            size.height / 2f - size.height * BUTTON_LABEL_OPTICAL_RAISE,
                             shadowOffset,
                         )
                     }
@@ -283,6 +286,14 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
     }
     }
 }
+
+/**
+ * How far above the pill's geometric center the button label sits, as a fraction of the pill
+ * height. Replaces desktop's 0.0025*h nudge (~3.3% of the pill), which was not enough on the
+ * pill art: its luminance centroid is at ~45% of the height, so the optical center is ~5%
+ * above geometric, plus the downward drop shadow's visual weight.
+ */
+private const val BUTTON_LABEL_OPTICAL_RAISE = 0.10f
 
 /**
  * Draw [text] with its glyphs' INK BOX centered at ([centerX], [centerY]), black drop shadow
