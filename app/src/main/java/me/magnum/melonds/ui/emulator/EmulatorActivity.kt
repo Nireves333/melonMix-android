@@ -424,6 +424,7 @@ class EmulatorActivity : AppCompatActivity() {
                 // full-window video); otherwise anchored to the top-screen viewport.
                 KhPauseMenuUi(
                     state = khPauseMenuState.value,
+                    theme = viewModel.khPauseMenuTheme.collectAsState().value,
                     menuBounds = if (khCutsceneState.value != null) null else khTopScreenRect.value,
                     onEntryTapped = { index ->
                         // [KHMM] tap the highlighted entry to confirm, another entry to move

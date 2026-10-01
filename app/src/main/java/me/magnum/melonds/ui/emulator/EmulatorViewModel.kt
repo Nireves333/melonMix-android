@@ -53,6 +53,7 @@ import me.magnum.melonds.domain.model.emulator.EmulatorSessionUpdateAction
 import me.magnum.melonds.domain.model.emulator.FirmwareLaunchResult
 import me.magnum.melonds.domain.model.emulator.KhCutsceneState
 import me.magnum.melonds.domain.model.emulator.KhPauseMenuState
+import me.magnum.melonds.domain.model.emulator.KhPauseMenuTheme
 import me.magnum.melonds.domain.model.emulator.RomLaunchResult
 import me.magnum.melonds.domain.model.layout.BackgroundMode
 import me.magnum.melonds.domain.model.layout.Insets
@@ -170,6 +171,11 @@ class EmulatorViewModel @Inject constructor(
     // the emulator mirrors its content/cursor and we draw the replacement in Compose.
     private val _khPauseMenu = MutableStateFlow<KhPauseMenuState?>(null)
     val khPauseMenu = _khPauseMenu.asStateFlow()
+
+    // [KHMM] per-game dress for the pause-menu overlay (Re:Coded gets its own style instead
+    // of Days' KH2 look); set from the loaded ROM's gamecode, KH2 is the safe default
+    private val _khPauseMenuTheme = MutableStateFlow(KhPauseMenuTheme.KH2)
+    val khPauseMenuTheme = _khPauseMenuTheme.asStateFlow()
 
     // [KHMM] HD replacement cutscene currently playing (null = none). The video covers the
     // emulator surface while the muted emulator fast-forwards behind it.
@@ -704,6 +710,7 @@ class EmulatorViewModel @Inject constructor(
         uiLayoutProvider.setKhTopScreenOnly(false) // [KHMM]
         _khTouchControlsEnabled.value = false // [KHMM]
         _khSingleScreenActive.value = false // [KHMM]
+        _khPauseMenuTheme.value = KhPauseMenuTheme.KH2 // [KHMM]
     }
 
     // [KHMM] Drive the automatic single-screen (top-screen-only) layout: active only while the
@@ -713,6 +720,8 @@ class EmulatorViewModel @Inject constructor(
     private fun startObservingKhSingleScreenLayout(rom: Rom) {
         sessionCoroutineScope.launch {
             val gameCode = getRomInfo(rom)?.gameCode
+            // Re:Coded carts are BK9 + region letter (Days = YKG*); drives the overlay dress
+            _khPauseMenuTheme.value = if (gameCode?.startsWith("BK9") == true) KhPauseMenuTheme.RECODED else KhPauseMenuTheme.KH2
             val isEnhancedGame = gameCode?.length == 4 && MelonEmulator.isEnhancedGameCode(
                 (gameCode[0].code and 0xFF) or
                         ((gameCode[1].code and 0xFF) shl 8) or
