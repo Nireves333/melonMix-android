@@ -55,6 +55,7 @@ static const char* const kKhAddonKeyNames[] = {
     "HK_CommandMenuDown",     // 6 KH_COMMAND_MENU_DOWN
     "HK_HUDToggle",           // 7 KH_HUD_TOGGLE
     "HK_FullscreenMapToggle", // 8 KH_FULLSCREEN_MAP_TOGGLE
+    "HK_ViewEnlargeToggle",   // 9 KH_VIEW_ENLARGE_TOGGLE (Re:Coded only; Days resolves -1)
 };
 static_assert(sizeof(kKhAddonKeyNames) / sizeof(kKhAddonKeyNames[0]) == MelonInstance::kKhAddonActionCount,
               "addon key name table must match the action count");
@@ -536,6 +537,32 @@ u32 MelonInstance::runFrame()
         // vetoes, and a stale false must not skip buildShapes on the frame the driver
         // comes back.
         khShouldPresentFrame = true;
+    }
+
+    // [KHMM] Re:Coded single-screen tree view: tell the frontend when the composite is
+    // showing the bottom screen's ENLARGED tree so it can pass touches through to the DS
+    // screen, along with the tree box as fractions of the composite output (the shape's
+    // size is a lib-side tuning knob; the touch box must follow it). Covers the
+    // plugin-off path too, so a mid-session enhanced-graphics toggle or scene change
+    // always retracts the passthrough. Re-fired if the box moves (HUD scale change).
+    {
+        KhTreeViewState state = {};
+        if (khPluginActive && plugin != nullptr && plugin->isReady() && plugin->isTreeViewActive())
+        {
+            state.active = 1;
+            if (!plugin->getTreeViewRect(state.x, state.y, state.w, state.h))
+            {
+                state.x = 0.0f; state.y = 0.0f; state.w = 1.0f; state.h = 1.0f;
+            }
+        }
+        bool changed = state.active != khLastTreeView.active ||
+                       (state.active && (state.x != khLastTreeView.x || state.y != khLastTreeView.y ||
+                                         state.w != khLastTreeView.w || state.h != khLastTreeView.h));
+        if (changed)
+        {
+            khLastTreeView = state;
+            fireEmulatorEvent(AndroidMelonEventMessenger::EVENT_KH_TREE_VIEW, sizeof(state), &state);
+        }
     }
 
     // [KHMM] While an HD replacement video plays, the hidden DS prerendered cutscene races

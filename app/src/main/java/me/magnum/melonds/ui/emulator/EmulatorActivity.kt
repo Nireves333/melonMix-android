@@ -532,6 +532,15 @@ class EmulatorActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // [KHMM] Re:Coded single-screen tree view: touch passthrough gate + box
+                viewModel.khTreeView.collect {
+                    binding.viewLayoutControls.setKhTreeViewState(it)
+                    presentation?.layoutView?.setKhTreeViewState(it)
+                }
+            }
+        }
+        lifecycleScope.launch {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.mainScreenBackground.collectLatest {
                     mainScreenRenderer.setBackground(it)
                 }
@@ -778,6 +787,7 @@ class EmulatorActivity : AppCompatActivity() {
                     setKhControlsEnabled(viewModel.khTouchControlsEnabled.value) // [KHMM]
                     setKhSingleScreenActive(viewModel.khSingleScreenActive.value) // [KHMM]
                     setKhStickDeadzone(viewModel.khStickDeadzone.value / 100f) // [KHMM]
+                    setKhTreeViewState(viewModel.khTreeView.value) // [KHMM]
                 }
 
                 updateRendererConfiguration(viewModel.runtimeRendererConfiguration.value)

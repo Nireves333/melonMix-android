@@ -416,6 +416,7 @@
     <string name="input_kh_shortcut">KH: Shortcuts (L)</string>
     <string name="input_kh_hud_toggle">KH: HUD Toggle</string>
     <string name="input_kh_fullscreen_map_toggle">KH: Fullscreen Map Toggle</string>
+    <string name="input_kh_view_enlarge_toggle">KH: Enlarge Map/Tree (Re:Coded)</string>
     <string name="kh_recommended_bindings_button">KH layout</string>
     <string name="kh_recommended_bindings_title">Apply recommended KH bindings?</string>
     <string name="kh_recommended_bindings_message">Applies KH Melon Mix\'s recommended controller layout: movement on the left stick, camera on the right stick, command menu on the d-pad, lock-on on R1, switch target on the triggers, HUD toggle on L3, map on Select, and X/Y swapped to match the HD games. This overwrites your current bindings for these controls (other bindings are kept).</string>

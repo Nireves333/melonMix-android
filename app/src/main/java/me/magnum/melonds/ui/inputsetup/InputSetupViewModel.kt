@@ -136,6 +136,7 @@ class InputSetupViewModel @Inject constructor(private val settingsRepository: Se
             Input.KH_COMMAND_MENU_RIGHT to (key(KeyEvent.KEYCODE_DPAD_RIGHT) to axis(MotionEvent.AXIS_HAT_X, pos)),
             Input.KH_HUD_TOGGLE to (key(KeyEvent.KEYCODE_BUTTON_THUMBL) to none),
             Input.KH_FULLSCREEN_MAP_TOGGLE to (key(KeyEvent.KEYCODE_BUTTON_SELECT) to none),
+            Input.KH_VIEW_ENLARGE_TOGGLE to (key(KeyEvent.KEYCODE_BUTTON_THUMBR) to none),
             Input.KH_CAMERA_UP to (axis(MotionEvent.AXIS_RZ, neg) to none),
             Input.KH_CAMERA_DOWN to (axis(MotionEvent.AXIS_RZ, pos) to none),
             Input.KH_CAMERA_LEFT to (axis(MotionEvent.AXIS_Z, neg) to none),

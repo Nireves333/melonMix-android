@@ -105,4 +105,15 @@ enum class EmulatorEventType(val event: Int) {
      * * subtitles file path (`str`, only when playing != 0; may be empty/nonexistent)
      */
     EventKhCutscene(302),
+
+    /**
+     * [KHMM] Re:Coded single-screen ENLARGED tree view visibility. While active, the
+     * composite shows the whole DS bottom screen (the overclock tree) as a centered 4:3
+     * box and the frontend passes touches inside that box through to the DS touchscreen.
+     * Data:
+     * * active (`i32`)
+     * * box x, y, width, height (`f32` each) — the tree box as fractions of the
+     *   top-screen view; zeros when inactive
+     */
+    EventKhTreeView(303),
 }

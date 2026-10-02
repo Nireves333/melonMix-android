@@ -50,6 +50,7 @@ enum class Input(val keyCode: Int, val khAddonAction: Int = -1, val khCameraDire
     KH_COMMAND_MENU_DOWN(-1, 6),
     KH_HUD_TOGGLE(-1, 7),
     KH_FULLSCREEN_MAP_TOGGLE(-1, 8),
+    KH_VIEW_ENLARGE_TOGGLE(-1, 9),
     KH_CAMERA_RIGHT(-1, khCameraDirection = 0),
     KH_CAMERA_LEFT(-1, khCameraDirection = 1),
     KH_CAMERA_DOWN(-1, khCameraDirection = 2),
