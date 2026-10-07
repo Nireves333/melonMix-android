@@ -18,6 +18,7 @@ import me.magnum.melonds.ui.emulator.input.IInputListener
 import me.magnum.melonds.ui.emulator.input.IKhCameraListener
 import me.magnum.melonds.ui.emulator.input.KhCommandMenuInputHandler
 import me.magnum.melonds.ui.emulator.input.KhStickDpadAdapter
+import me.magnum.melonds.ui.emulator.input.KhTapHoldInputHandler
 import me.magnum.melonds.ui.emulator.input.KhTreeViewTouchHandler
 import me.magnum.melonds.ui.emulator.input.view.KhStickView
 import me.magnum.melonds.ui.emulator.input.SingleButtonInputHandler
@@ -153,7 +154,9 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_SWITCH_TARGET_RIGHT, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_COMMAND_MENU)?.view?.setOnTouchListener(KhCommandMenuInputHandler(it, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_HUD_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_HUD_TOGGLE, enableHapticFeedback, touchVibrator))
-            getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
+            // tap = map/tree swap; hold = enlarge (touch stand-in for R3 — the plugin's
+            // own hold path on this key is the native Select zoom, physical-only by design)
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(KhTapHoldInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, Input.KH_VIEW_ENLARGE_TOGGLE, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_SHORTCUT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.L, enableHapticFeedback, touchVibrator))
             // [KHMM] sticks track and draw themselves; only the value listeners attach here
             (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.apply {
