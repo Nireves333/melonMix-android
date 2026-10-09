@@ -5,6 +5,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.MessageQueue
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -20,6 +21,7 @@ class EmulatorMessageQueue(private val eventHandler: EventHandler) {
     }
 
     companion object {
+        private const val TAG = "EmulatorMessageQueue"
         private const val EVENT_SIZE_BYTES = 8 // 2 ints (type, data length)
         private const val DATA_SIZE_BYTES = 512 // 512 bytes of arbitrary data ([KHMM] pause-menu snapshots carry localized strings)
 
@@ -113,12 +115,28 @@ class EmulatorMessageQueue(private val eventHandler: EventHandler) {
         var bytesRead = currentInputStream.channel.read(eventBuffer)
         eventBuffer.position(0)
 
+        if (bytesRead <= 0) {
+            // Nothing in the pipe (spurious wakeup); no bytes were consumed
+            return
+        }
         if (bytesRead < EVENT_SIZE_BYTES) {
+            // [KHMM] The native side writes each event (header + payload) in a single atomic
+            // pipe write, so a partial header means the stream is corrupt. The consumed bytes
+            // cannot be put back: the stream stays desynced until the next session, but at
+            // least say so instead of silently swallowing every event from here on.
+            Log.e(TAG, "Partial event header ($bytesRead bytes); emulator event stream is corrupt")
             return
         }
 
         val type = eventBuffer.int
         val dataLength = eventBuffer.int
+
+        if (dataLength < 0 || dataLength > DATA_SIZE_BYTES) {
+            // [KHMM] Impossible for a well-formed event; the stream is desynced and this
+            // "length" is payload bytes misread as a header
+            Log.e(TAG, "Invalid event data length $dataLength (type $type); emulator event stream is corrupt")
+            return
+        }
 
         if (dataLength > 0) {
             dataBuffer.position(0)
@@ -127,6 +145,9 @@ class EmulatorMessageQueue(private val eventHandler: EventHandler) {
             dataBuffer.position(0)
 
             if (bytesRead < dataLength) {
+                // [KHMM] Can't happen with atomic single-write events (the payload is in the
+                // pipe before the header wakes us); if it does, the stream is corrupt
+                Log.e(TAG, "Partial event payload ($bytesRead of $dataLength bytes, type $type); emulator event stream is corrupt")
                 return
             }
         }
