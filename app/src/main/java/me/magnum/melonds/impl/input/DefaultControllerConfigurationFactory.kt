@@ -25,6 +25,12 @@ class DefaultControllerConfigurationFactory : ControllerConfigurationFactory {
             InputConfig(Input.PAUSE, InputConfig.Assignment.Key(null, KeyEvent.KEYCODE_BUTTON_MODE)),
         )
 
-        return ControllerConfiguration(inputList)
+        // [KHMM] New installs start on the recommended KH layout (same bindings as the
+        // "KH layout" button in input setup), applied over the stock defaults above so
+        // rows the KH map doesn't cover (pause on Mode) keep their stock binding. Only
+        // reached when no controller_config.json exists yet; anyone with saved bindings
+        // keeps them.
+        val baseline = ControllerConfiguration(inputList).inputMapper
+        return ControllerConfiguration(KhRecommendedBindings.applyTo(baseline))
     }
 }

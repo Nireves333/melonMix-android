@@ -43,7 +43,9 @@ step 3.
 1. Launch the app and point it at the folder with your `.nds` ROMs (your own dumps,
    see the README). The games show up on the select screen.
 2. No BIOS or firmware files are needed. Built-in replacements are used.
-3. Bind your controller: *Settings > Input*, open the key mapping, and press
+3. Controller bindings: new installs already start on the recommended KH layout,
+   so with a controller you can just play. If you changed things or updated from
+   an older version, go to *Settings > Input*, open the key mapping, and press
    **KH layout** in the top bar. That sets up the intended layout in one tap:
    movement on the left stick, camera on the right, Lock On on R1, Switch Target on
    the triggers, command menu on the d-pad, HUD toggle on L3, map on Select, and in
