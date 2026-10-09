@@ -42,6 +42,8 @@ building from source, asset packs and known issues are all in
   classic DS buttons with them off, and everything hides when a controller is
   connected. Every control can be moved and resized in the layout editor, with
   settings for camera speed and stick deadzone.
+- Re:coded's overclock Tree without a second screen: the map button swaps the
+  corner map for the Tree, R3 enlarges it, and the enlarged Tree scrolls by touch.
 - HD cutscene replacement with subtitles in six languages (Days only).
 - Remastered music replacement with proper loop points (both games).
 - The app itself is reworked for the two games: KH styled game select screen, menu

@@ -46,8 +46,8 @@ step 3.
 3. Bind your controller: *Settings > Input*, open the key mapping, and press
    **KH layout** in the top bar. That sets up the intended layout in one tap:
    movement on the left stick, camera on the right, Lock On on R1, Switch Target on
-   the triggers, command menu on the d-pad, HUD toggle on L3, map on Select. You
-   can rebind anything afterwards. Camera speed has its own setting in the same
+   the triggers, command menu on the d-pad, HUD toggle on L3, map on Select, and in
+   Re:coded the map/Tree size toggle on R3. You can rebind anything afterwards. Camera speed has its own setting in the same
    screen (I have mine set to 1.5 for my RG505). 
 
 You can stop here and you'll have the full single screen experience. The asset
@@ -107,6 +107,13 @@ Some notes:
   and stretch the top screen out to the full width (thanks to hydrogenicMetallium
   for finding this). This setting was called Single screen mode before 1.1.1;
   your choice carries over automatically.
+- **Map and Tree view (Re:coded)**: the map button swaps the corner map for the
+  overclock Tree and back, same as tapping the Tree tab on the DS bottom screen.
+  R3 enlarges whatever is in view, press it again to shrink. Holding the map
+  button does the game's own combined camera and map zoom. On touch, tap the MAP
+  button to swap and hold it to enlarge. The enlarged Tree takes finger input
+  directly: drag to scroll it and tap its tabs. In dual screen mode the map
+  button just flips the game's own tab on the bottom screen.
 - **Touch controls**: no controller needed. On screen KH controls (Lock On,
   Switch Target, the command menu, shortcuts, HUD, map, a movement stick and a
   camera stick) show automatically when no controller is connected, and swap to
