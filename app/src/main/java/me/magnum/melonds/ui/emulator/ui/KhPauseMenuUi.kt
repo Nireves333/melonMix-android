@@ -5,6 +5,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import android.graphics.Paint
+import android.graphics.Typeface
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -17,6 +20,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.res.ResourcesCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,7 +39,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import me.magnum.melonds.R
 import me.magnum.melonds.domain.model.Rect
@@ -66,8 +73,14 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
     }
 
     val density = LocalDensity.current
+    val context = LocalContext.current
     val khGummi = FontFamily(Font(R.font.kh_gummi))
-    val khSogei = FontFamily(Font(R.font.kh_sogei))
+    // The subtitle and button labels are drawn with a native Paint instead of a Text
+    // composable: like desktop (PauseMenuOverlay.cpp "Center on the label's own ink box"),
+    // they must be centered on the glyphs' measured ink box, because this font's vertical
+    // metrics don't line up with its glyphs' visual center - metric-based centering sits
+    // the text noticeably below the pill's middle (Discussion #16 screenshot).
+    val khSogeiTypeface = remember(context) { ResourcesCompat.getFont(context, R.font.kh_sogei) ?: Typeface.DEFAULT }
 
     Box(modifier = Modifier.fillMaxSize()) {
     if (state.darkenBackground) {
@@ -148,26 +161,52 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
         // Subtitle (confirmation prompt), white over a soft black drop shadow
         if (hasSubtitle) {
             val subtitleFontPx = hPx * 0.058f * buttonsSize
-            CenteredTextRow(centerYpx = subtitleCenterY, heightPx = subtitleFontPx * 2f) {
-                Text(
-                    text = state.subtitle,
-                    style = TextStyle(
-                        fontFamily = khSogei,
-                        fontSize = with(density) { subtitleFontPx.toSp() },
-                        color = Color.White,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = androidx.compose.ui.geometry.Offset(subtitleFontPx * 0.1f, subtitleFontPx * 0.1f),
-                        ),
-                    ),
-                    maxLines = 1,
-                    softWrap = false,
-                )
+            val subtitlePaint = remember(khSogeiTypeface, subtitleFontPx) {
+                Paint().apply {
+                    isAntiAlias = true
+                    typeface = khSogeiTypeface
+                    textSize = subtitleFontPx
+                }
+            }
+            val subtitleRowHeightPx = subtitleFontPx * 2f
+            Canvas(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .fillMaxWidth()
+                    .offset { IntOffset(0, (subtitleCenterY - subtitleRowHeightPx / 2f).roundToInt()) }
+                    .height(with(density) { subtitleRowHeightPx.toDp() }),
+            ) {
+                drawIntoCanvas { canvas ->
+                    // Desktop: shadow offset = fontMetrics.height * 0.07 * buttonsSizeModifier
+                    val shadowOffset = (subtitlePaint.fontMetrics.descent - subtitlePaint.fontMetrics.ascent) * 0.07f * buttonsSize
+                    drawInkCenteredText(canvas.nativeCanvas, subtitlePaint, state.subtitle, size.width / 2f, size.height / 2f, shadowOffset)
+                }
             }
         }
 
-        // Buttons
-        val buttonFontPx = hPx * 0.056f * buttonsSize
+        // Buttons. Like desktop, wide localized labels (e.g. German "Überspringen") shrink to
+        // fit the pill's flat area - the rounded caps eat ~buttonHeight of width.
+        val buttonFontPx = remember(hPx, buttonsSize, buttonWidthPx, buttonHeightPx, khSogeiTypeface, state.buttonLabels) {
+            val basePx = hPx * 0.056f * buttonsSize
+            val measurePaint = Paint().apply {
+                typeface = khSogeiTypeface
+                textSize = basePx
+            }
+            val widestLabelPx = state.buttonLabels.maxOfOrNull { measurePaint.measureText(it) } ?: 0f
+            val availableTextWidthPx = buttonWidthPx - buttonHeightPx
+            if (widestLabelPx > availableTextWidthPx && availableTextWidthPx > 0f) {
+                basePx * availableTextWidthPx / widestLabelPx
+            } else {
+                basePx
+            }
+        }
+        val buttonPaint = remember(khSogeiTypeface, buttonFontPx) {
+            Paint().apply {
+                isAntiAlias = true
+                typeface = khSogeiTypeface
+                textSize = buttonFontPx
+            }
+        }
         state.buttonLabels.forEachIndexed { index, label ->
             val isSelected = index == state.selection
             val buttonTopPx = firstButtonY + index * (buttonHeightPx + buttonSpacingPx)
@@ -187,21 +226,23 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.fillMaxSize(),
                 )
-                Text(
-                    text = label,
-                    style = TextStyle(
-                        fontFamily = khSogei,
-                        fontSize = with(density) { buttonFontPx.toSp() },
-                        color = Color.White,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = androidx.compose.ui.geometry.Offset(buttonFontPx * 0.1f, buttonFontPx * 0.1f),
-                        ),
-                    ),
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Visible,
-                )
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawIntoCanvas { canvas ->
+                        val shadowOffset = (buttonPaint.fontMetrics.descent - buttonPaint.fontMetrics.ascent) * 0.07f * buttonsSize
+                        drawInkCenteredText(
+                            canvas.nativeCanvas,
+                            buttonPaint,
+                            label,
+                            size.width / 2f,
+                            // Centered on the pill's OPTICAL center, not its geometric one: the
+                            // art's top gloss puts its visual weight at ~45% of the height
+                            // (luminance centroid), and the drop shadow hangs dark weight below
+                            // the glyphs, so geometrically centered text reads low. Tune here.
+                            size.height / 2f - size.height * BUTTON_LABEL_OPTICAL_RAISE,
+                            shadowOffset,
+                        )
+                    }
+                }
             }
 
             if (isSelected) {
@@ -244,6 +285,41 @@ fun KhPauseMenuUi(state: KhPauseMenuState?, menuBounds: Rect? = null, onEntryTap
         }
     }
     }
+}
+
+/**
+ * How far above the pill's geometric center the button label sits, as a fraction of the pill
+ * height. Replaces desktop's 0.0025*h nudge (~3.3% of the pill), which was not enough on the
+ * pill art: its luminance centroid is at ~45% of the height, so the optical center is ~5%
+ * above geometric, plus the downward drop shadow's visual weight.
+ */
+private const val BUTTON_LABEL_OPTICAL_RAISE = 0.06f
+
+/**
+ * Draw [text] with its glyphs' INK BOX centered at ([centerX], [centerY]), black drop shadow
+ * first, then white — the Compose-side twin of desktop PauseMenuOverlay.cpp's ink-box
+ * centering ("the button font's vertical metrics don't line up with its glyphs' visual
+ * center"). [Paint.getTextBounds] is Android's tightBoundingRect: relative to the baseline,
+ * top negative.
+ */
+private fun drawInkCenteredText(
+    canvas: android.graphics.Canvas,
+    paint: Paint,
+    text: String,
+    centerX: Float,
+    centerY: Float,
+    shadowOffsetPx: Float,
+) {
+    val inkBox = android.graphics.Rect()
+    paint.getTextBounds(text, 0, text.length, inkBox)
+    val textWidth = paint.measureText(text)
+    val x = centerX - textWidth / 2f
+    val baselineY = centerY - inkBox.top - inkBox.height() / 2f
+
+    paint.color = android.graphics.Color.BLACK
+    canvas.drawText(text, x + shadowOffsetPx, baselineY + shadowOffsetPx, paint)
+    paint.color = android.graphics.Color.WHITE
+    canvas.drawText(text, x, baselineY, paint)
 }
 
 /**
