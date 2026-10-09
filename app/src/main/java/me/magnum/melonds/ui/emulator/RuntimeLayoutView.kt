@@ -7,6 +7,7 @@ import androidx.core.view.isVisible
 import dagger.hilt.android.AndroidEntryPoint
 import me.magnum.melonds.common.vibration.TouchVibrator
 import me.magnum.melonds.domain.model.Input
+import me.magnum.melonds.domain.model.emulator.EmulatorEvent
 import me.magnum.melonds.domain.model.input.SoftInputBehaviour
 import me.magnum.melonds.domain.model.layout.LayoutComponent
 import me.magnum.melonds.ui.common.LayoutView
@@ -17,6 +18,8 @@ import me.magnum.melonds.ui.emulator.input.IInputListener
 import me.magnum.melonds.ui.emulator.input.IKhCameraListener
 import me.magnum.melonds.ui.emulator.input.KhCommandMenuInputHandler
 import me.magnum.melonds.ui.emulator.input.KhStickDpadAdapter
+import me.magnum.melonds.ui.emulator.input.KhTapHoldInputHandler
+import me.magnum.melonds.ui.emulator.input.KhTreeViewTouchHandler
 import me.magnum.melonds.ui.emulator.input.view.KhStickView
 import me.magnum.melonds.ui.emulator.input.SingleButtonInputHandler
 import me.magnum.melonds.ui.emulator.input.TouchscreenInputHandler
@@ -45,6 +48,10 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
     private var khSingleScreenActive = false
     // [KHMM] touch-stick deadzone from the input settings
     private var khStickDeadzone = KhStickView.DEFAULT_DEADZONE
+    // [KHMM] Re:Coded single-screen tree view: while active, the top-screen view passes
+    // touches in the lib-reported tree box through to the DS touchscreen
+    private var khTreeViewState: EmulatorEvent.KhTreeView? = null
+    private var khTreeViewTouchHandler: KhTreeViewTouchHandler? = null
 
     fun setFrontendInputHandler(frontendInputHandler: FrontendInputHandler) {
         this.frontendInputHandler = frontendInputHandler
@@ -74,6 +81,16 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
         if (khSingleScreenActive != active) {
             khSingleScreenActive = active
             updateVisibility()
+        }
+    }
+
+    // [KHMM] live gate + box for the tree-view touch passthrough (the handler stays
+    // attached; disabling it also retracts a touch in flight)
+    fun setKhTreeViewState(state: EmulatorEvent.KhTreeView) {
+        khTreeViewState = state
+        khTreeViewTouchHandler?.let {
+            it.setBox(state.boxX, state.boxY, state.boxWidth, state.boxHeight)
+            it.enabled = state.active
         }
     }
 
@@ -137,7 +154,9 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
             getLayoutComponentView(LayoutComponent.KH_BUTTON_SWITCH_TARGET_RIGHT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_SWITCH_TARGET_RIGHT, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_COMMAND_MENU)?.view?.setOnTouchListener(KhCommandMenuInputHandler(it, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_HUD_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_HUD_TOGGLE, enableHapticFeedback, touchVibrator))
-            getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, enableHapticFeedback, touchVibrator))
+            // tap = map/tree swap; hold = enlarge (touch stand-in for R3 — the plugin's
+            // own hold path on this key is the native Select zoom, physical-only by design)
+            getLayoutComponentView(LayoutComponent.KH_BUTTON_MAP_TOGGLE)?.view?.setOnTouchListener(KhTapHoldInputHandler(it, Input.KH_FULLSCREEN_MAP_TOGGLE, Input.KH_VIEW_ENLARGE_TOGGLE, enableHapticFeedback, touchVibrator))
             getLayoutComponentView(LayoutComponent.KH_BUTTON_SHORTCUT)?.view?.setOnTouchListener(SingleButtonInputHandler(it, Input.L, enableHapticFeedback, touchVibrator))
             // [KHMM] sticks track and draw themselves; only the value listeners attach here
             (getLayoutComponentView(LayoutComponent.MOVEMENT_STICK)?.view as? KhStickView)?.apply {
@@ -195,7 +214,19 @@ class RuntimeLayoutView(context: Context, attrs: AttributeSet? = null) : LayoutV
         systemInputHandler?.let {
             getLayoutComponentView(touchScreenComponent)?.view?.setOnTouchListener(TouchscreenInputHandler(it))
         }
-        getLayoutComponentView(nonTouchScreenComponent)?.view?.setOnTouchListener(null)
+        // [KHMM] the non-touch (top) screen carries the tree-view passthrough handler, which
+        // is inert unless the Re:Coded single-screen tree view is on screen. Soft-input
+        // buttons are siblings above this view, so they keep winning their touches.
+        val treeViewHandler = systemInputHandler?.let {
+            KhTreeViewTouchHandler(it).apply {
+                khTreeViewState?.let { state ->
+                    setBox(state.boxX, state.boxY, state.boxWidth, state.boxHeight)
+                    enabled = state.active
+                }
+            }
+        }
+        khTreeViewTouchHandler = treeViewHandler
+        getLayoutComponentView(nonTouchScreenComponent)?.view?.setOnTouchListener(treeViewHandler)
     }
 
     private fun updateVisibility() {

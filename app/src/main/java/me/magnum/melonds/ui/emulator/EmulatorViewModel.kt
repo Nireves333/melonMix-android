@@ -177,6 +177,11 @@ class EmulatorViewModel @Inject constructor(
     private val _khPauseMenuTheme = MutableStateFlow(KhPauseMenuTheme.KH2)
     val khPauseMenuTheme = _khPauseMenuTheme.asStateFlow()
 
+    // [KHMM] Re:Coded single-screen enlarged tree view state: while active, the activity
+    // passes touches in the reported tree box through to the DS touchscreen
+    private val _khTreeView = MutableStateFlow(EmulatorEvent.KhTreeView(false, 0f, 0f, 0f, 0f))
+    val khTreeView = _khTreeView.asStateFlow()
+
     // [KHMM] HD replacement cutscene currently playing (null = none). The video covers the
     // emulator surface while the muted emulator fast-forwards behind it.
     private val _khCutscene = MutableStateFlow<KhCutsceneState?>(null)
@@ -806,6 +811,8 @@ class EmulatorViewModel @Inject constructor(
                     }
                     // [KHMM] cutscene skip menu SFX
                     is EmulatorEvent.KhMenuSound -> _khMenuSoundEvent.tryEmit(it.soundId)
+                    // [KHMM] Re:Coded single-screen tree view (touch passthrough gate + box)
+                    is EmulatorEvent.KhTreeView -> _khTreeView.value = it
                     is EmulatorEvent.Stop -> {
                         when (it.reason) {
                             EmulatorEvent.Stop.Reason.GBAModeNotSupported -> _toastEvent.tryEmit(ToastEvent.GbaModeNotSupported)
@@ -814,6 +821,7 @@ class EmulatorViewModel @Inject constructor(
                         }
                         _khPauseMenu.value = null // [KHMM]
                         _khCutscene.value = null // [KHMM]
+                        _khTreeView.value = EmulatorEvent.KhTreeView(false, 0f, 0f, 0f, 0f) // [KHMM]
                         stopEmulatorAndExit()
                     }
                 }

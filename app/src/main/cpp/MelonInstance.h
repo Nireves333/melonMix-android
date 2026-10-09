@@ -86,7 +86,7 @@ public:
     // into the 4-bit slots, an upstream overflow bug we don't reproduce. UI thread.
     void khSetCameraAxes(float x, float y);
     // [KHMM] number of app-side KH addon actions (kKhAddonKeyNames in MelonInstance.cpp)
-    static constexpr int kKhAddonActionCount = 9;
+    static constexpr int kKhAddonActionCount = 10;
     // [KHMM] ask the plugin to re-run loadConfigs on the emu thread next frame (desktop
     // parity: settings changes raise shouldInvalidateConfigs, EmuThread.cpp:294). Used by
     // the camera-sensitivity pref for live application. Callable from the UI thread — the
@@ -177,6 +177,14 @@ private:
     u32 khLastAddonMask = 0; // emu thread only (plugin-bit domain)
     int khAddonBitByAction[kKhAddonActionCount] = {};
     std::atomic<u32> khTouchKeyMask { 0xFFFF };
+    // [KHMM] last tree-view state sent to the frontend (EVENT_KH_TREE_VIEW fires on
+    // change; the frontend gates its touch passthrough on it and maps touches into the
+    // box). Plain i32+floats so it doubles as the event payload. Emu thread only.
+    struct KhTreeViewState {
+        int32_t active = 0;
+        float x = 0.0f, y = 0.0f, w = 0.0f, h = 0.0f; // fractions of the composite output
+    };
+    KhTreeViewState khLastTreeView = {};
 
     std::atomic<float> motionData[6] = { 0.0f, 0.0f, 9.80665f, 0.0f, 0.0f, 0.0f };
 

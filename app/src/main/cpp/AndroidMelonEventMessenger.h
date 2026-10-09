@@ -16,9 +16,14 @@ public:
     // EVENT_KH_CUTSCENE payload: i32 playing; when playing=1: str videoPath, str subtitlesPath
     // (the frontend starts/stops the HD replacement video player; desktop: windowStartVideo /
     // windowStopVideo). Paths are capped at 224 bytes each to fit the Kotlin data buffer.
+    // EVENT_KH_TREE_VIEW payload: i32 active, f32 x, y, w, h — the Re:Coded single-screen
+    // ENLARGED tree view is on screen, so the frontend passes touches in its box through
+    // to the DS touchscreen; x/y/w/h is that box as fractions of the composite output
+    // (zeros when inactive).
     static constexpr int EVENT_KH_PAUSE_MENU = 300;
     static constexpr int EVENT_KH_MENU_SOUND = 301;
     static constexpr int EVENT_KH_CUTSCENE = 302;
+    static constexpr int EVENT_KH_TREE_VIEW = 303;
 
     void onRumbleStart(int durationMs) override;
     void onRumbleStop() override;

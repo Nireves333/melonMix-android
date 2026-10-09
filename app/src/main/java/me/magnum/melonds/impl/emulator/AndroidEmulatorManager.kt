@@ -110,6 +110,11 @@ class AndroidEmulatorManager(
             // [KHMM] cutscene skip menu sound (the DS audio is muted while the HD video plays,
             // so the frontend plays these; the game's own native menus play their own SFX)
             EmulatorEventType.EventKhMenuSound -> _emulatorEvents.tryEmit(EmulatorEvent.KhMenuSound(data.getInt()))
+            // [KHMM] Re:Coded single-screen enlarged tree view visibility + box (touch
+            // passthrough gate; box = fractions of the top-screen view)
+            EmulatorEventType.EventKhTreeView -> _emulatorEvents.tryEmit(
+                EmulatorEvent.KhTreeView(data.getInt() != 0, data.getFloat(), data.getFloat(), data.getFloat(), data.getFloat())
+            )
             // [KHMM] HD replacement cutscene start/dismiss
             EmulatorEventType.EventKhCutscene -> {
                 val playing = data.getInt() != 0

@@ -9,6 +9,16 @@ sealed class EmulatorEvent {
     data class KhCutscene(val state: KhCutsceneState?) : EmulatorEvent()
     // [KHMM] KH cutscene skip menu sound (1=enter, 2=move, 3=continue, 4=select)
     data class KhMenuSound(val soundId: Int) : EmulatorEvent()
+    // [KHMM] Re:Coded single-screen enlarged tree view on screen (touch passthrough
+    // gate); the box is the tree shape as fractions of the top-screen view (zeros when
+    // inactive), so the touch mapping follows wherever the lib tunes the shape
+    data class KhTreeView(
+        val active: Boolean,
+        val boxX: Float,
+        val boxY: Float,
+        val boxWidth: Float,
+        val boxHeight: Float,
+    ) : EmulatorEvent()
     data class Stop(val reason: Reason) : EmulatorEvent() {
         enum class Reason {
             GBAModeNotSupported,

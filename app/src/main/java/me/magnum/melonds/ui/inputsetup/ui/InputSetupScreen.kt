@@ -313,6 +313,7 @@ private fun getInputName(input: Input): String? {
         Input.KH_COMMAND_MENU_DOWN -> R.string.input_kh_command_menu_down
         Input.KH_HUD_TOGGLE -> R.string.input_kh_hud_toggle
         Input.KH_FULLSCREEN_MAP_TOGGLE -> R.string.input_kh_fullscreen_map_toggle
+        Input.KH_VIEW_ENLARGE_TOGGLE -> R.string.input_kh_view_enlarge_toggle
         Input.KH_CAMERA_UP -> R.string.input_kh_camera_up
         Input.KH_CAMERA_DOWN -> R.string.input_kh_camera_down
         Input.KH_CAMERA_LEFT -> R.string.input_kh_camera_left
