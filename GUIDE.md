@@ -49,8 +49,9 @@ step 3.
    **KH layout** in the top bar. That sets up the intended layout in one tap:
    movement on the left stick, camera on the right, Lock On on R1, Switch Target on
    the triggers, command menu on the d-pad, HUD toggle on L3, map on Select, and in
-   Re:coded the map/Tree size toggle on R3. You can rebind anything afterwards. Camera speed has its own setting in the same
-   screen (I have mine set to 1.5 for my RG505). 
+   Re:coded the map/Tree size toggle on R3. You can rebind anything afterwards.
+   Camera speed has its own setting in the same screen (I have mine set to 1.5
+   for my RG505). 
 
 You can stop here and you'll have the full single screen experience. The asset
 packs below are optional extras on top.
